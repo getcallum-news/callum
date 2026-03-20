@@ -1,0 +1,33 @@
+# Web framework
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+
+# Database
+sqlalchemy==2.0.36
+psycopg2-binary==2.9.10
+alembic==1.14.1
+
+# HTTP & RSS parsing
+httpx==0.28.1
+feedparser==6.0.11
+
+# Background scheduling
+apscheduler==3.10.4
+
+# Environment & configuration
+python-dotenv==1.0.1
+
+# Rate limiting
+slowapi==0.1.9
+
+# Input sanitization
+bleach==6.2.0
+
+# Push notifications
+pywebpush==2.0.1
+
+# Error monitoring
+sentry-sdk[fastapi]==2.19.2
+
+# Pydantic (bundled with FastAPI, pinned for clarity)
+pydantic==2.10.4
