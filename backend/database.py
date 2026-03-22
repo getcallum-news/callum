@@ -12,10 +12,21 @@ from typing import Generator
 
 from config import DATABASE_URL
 
+import logging
+_db_logger = logging.getLogger(__name__)
+
+# Ensure sslmode=require for Supabase connections
+_db_url = DATABASE_URL
+if _db_url and "sslmode" not in _db_url:
+    separator = "&" if "?" in _db_url else "?"
+    _db_url = f"{_db_url}{separator}sslmode=require"
+
+_db_logger.info("Connecting to database: %s", _db_url[:30] + "..." if _db_url else "(empty)")
+
 # SQLAlchemy engine — pool_pre_ping keeps connections alive across
 # Supabase's idle timeout, so we don't hit stale connection errors.
 engine = create_engine(
-    DATABASE_URL,
+    _db_url,
     pool_pre_ping=True,
     pool_size=5,
     max_overflow=10,
@@ -47,9 +58,12 @@ def check_db_connection() -> bool:
     Called during startup — if this fails, the app refuses to start
     rather than serving requests that will all fail anyway.
     """
+    import logging
+    logger = logging.getLogger(__name__)
     try:
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
         return True
-    except Exception:
+    except Exception as e:
+        logger.error("Database connection failed: %s", e)
         return False
