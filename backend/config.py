@@ -26,8 +26,8 @@ REQUIRED_VARS = [
     "ALLOWED_ORIGINS",
 ]
 
-# Optional in development, required in production
-PRODUCTION_REQUIRED_VARS = [
+# Optional — these enable extra features but are not required to run
+OPTIONAL_VARS = [
     "SENTRY_DSN",
     "FIREBASE_CREDENTIALS_PATH",
     "VAPID_PRIVATE_KEY",
@@ -44,8 +44,12 @@ def _validate_env() -> None:
     """
     missing = [var for var in REQUIRED_VARS if not os.getenv(var)]
 
-    if IS_PRODUCTION:
-        missing += [var for var in PRODUCTION_REQUIRED_VARS if not os.getenv(var)]
+    # Log warnings for optional vars that are missing (but don't crash)
+    import logging
+    _logger = logging.getLogger(__name__)
+    for var in OPTIONAL_VARS:
+        if not os.getenv(var):
+            _logger.warning("Optional env var %s is not set — related features will be disabled", var)
 
     if missing:
         raise RuntimeError(

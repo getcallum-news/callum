@@ -131,8 +131,8 @@ app.add_middleware(
 # HTTPS redirect in production
 # ---------------------------------------------------------------------------
 
-if IS_PRODUCTION:
-    app.add_middleware(HTTPSRedirectMiddleware)
+# Note: HTTPS redirect is handled by Railway/Vercel at the proxy level.
+# Adding HTTPSRedirectMiddleware here would cause infinite redirect loops.
 
 
 # ---------------------------------------------------------------------------
