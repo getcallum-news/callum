@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import CallumIcon from "./CallumIcon";
 import NotificationBell from "./NotificationBell";
 import ThemeTransition from "./ThemeTransition";
@@ -58,7 +59,7 @@ export default function Header() {
       >
         <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-5">
           {/* Logo + wordmark */}
-          <a
+          <Link
             href="/"
             className="group flex items-center gap-3 transition-opacity hover:opacity-80"
           >
@@ -66,18 +67,24 @@ export default function Header() {
             <span className="font-serif text-lg font-semibold tracking-[0.05em]">
               Callum
             </span>
-          </a>
+          </Link>
 
           {/* Navigation */}
           <nav className="flex items-center gap-6 sm:gap-10">
-            <MagneticButton as="a" href="/" className="hover-underline text-[11px] font-medium uppercase tracking-[0.15em] opacity-60 transition-opacity hover:opacity-100">
-              Home
+            <MagneticButton>
+              <Link href="/" className="hover-underline text-[11px] font-medium uppercase tracking-[0.15em] opacity-60 transition-opacity hover:opacity-100">
+                Home
+              </Link>
             </MagneticButton>
-            <MagneticButton as="a" href="/rewind" className="hover-underline text-[11px] font-medium uppercase tracking-[0.15em] opacity-60 transition-opacity hover:opacity-100">
-              Rewind
+            <MagneticButton>
+              <Link href="/rewind" className="hover-underline text-[11px] font-medium uppercase tracking-[0.15em] opacity-60 transition-opacity hover:opacity-100">
+                Rewind
+              </Link>
             </MagneticButton>
-            <MagneticButton as="a" href="/about" className="hover-underline text-[11px] font-medium uppercase tracking-[0.15em] opacity-60 transition-opacity hover:opacity-100">
-              About
+            <MagneticButton>
+              <Link href="/about" className="hover-underline text-[11px] font-medium uppercase tracking-[0.15em] opacity-60 transition-opacity hover:opacity-100">
+                About
+              </Link>
             </MagneticButton>
           </nav>
 

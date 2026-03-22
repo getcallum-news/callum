@@ -54,6 +54,11 @@ export default function RootLayout({
     >
       <head>
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('callum-theme');if(t==='light'){document.documentElement.classList.remove('dark');document.documentElement.classList.add('light')}}catch(e){}})()`,
+          }}
+        />
       </head>
       <body className="font-sans bg-callum-dark text-callum-accent antialiased transition-colors duration-200 dark:bg-callum-dark dark:text-callum-accent">
         <ErrorBoundary>
