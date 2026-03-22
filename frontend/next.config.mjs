@@ -37,7 +37,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: https:",
-              "connect-src 'self' http://localhost:8000 https://*.supabase.com https://*.supabase.co https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com",
+              "connect-src 'self' http://localhost:8000 https://*.up.railway.app https://*.supabase.com https://*.supabase.co https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com",
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",
