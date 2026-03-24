@@ -45,6 +45,13 @@ function timeAgo(dateStr: string | null): string {
   return `${Math.floor(seconds / 86400)}d ago`;
 }
 
+const CATEGORY_GRADIENT: Record<string, string> = {
+  research: "linear-gradient(135deg, rgba(140,100,240,0.25) 0%, rgba(100,60,200,0.1) 100%)",
+  industry: "linear-gradient(135deg, rgba(80,140,255,0.25) 0%, rgba(60,100,200,0.1) 100%)",
+  tools: "linear-gradient(135deg, rgba(60,180,160,0.25) 0%, rgba(40,140,120,0.1) 100%)",
+  safety: "linear-gradient(135deg, rgba(240,160,60,0.25) 0%, rgba(200,120,40,0.1) 100%)",
+};
+
 export default function TrendingContent() {
   const [topics, setTopics] = useState<Topic[]>([]);
   const [hours, setHours] = useState(24);
@@ -52,16 +59,47 @@ export default function TrendingContent() {
   const [expandedTopic, setExpandedTopic] = useState<string | null>(null);
   const [topicArticles, setTopicArticles] = useState<Record<string, Article[]>>({});
   const [loadingArticles, setLoadingArticles] = useState<string | null>(null);
+  const [trendingStories, setTrendingStories] = useState<Article[]>([]);
+  const [loadingStories, setLoadingStories] = useState(true);
 
   const loadTrending = useCallback(async (h: number) => {
     setLoading(true);
+    setLoadingStories(true);
     try {
       const data = await fetchTrending();
       setTopics(data.topics);
+
+      // Fetch articles for top 3 topics in parallel to show trending stories
+      const topTopics = data.topics.slice(0, 3);
+      if (topTopics.length > 0) {
+        const results = await Promise.all(
+          topTopics.map((t) => fetchArticles({ q: t.topic, limit: 4 }))
+        );
+
+        // Merge, deduplicate by id, and take top 10
+        const seen = new Set<string>();
+        const merged: Article[] = [];
+        for (const res of results) {
+          for (const article of res.articles) {
+            if (!seen.has(article.id)) {
+              seen.add(article.id);
+              merged.push(article);
+            }
+          }
+        }
+        // Sort by most recent
+        merged.sort((a, b) => {
+          const da = a.published_at ? new Date(a.published_at).getTime() : 0;
+          const db = b.published_at ? new Date(b.published_at).getTime() : 0;
+          return db - da;
+        });
+        setTrendingStories(merged.slice(0, 10));
+      }
     } catch {
       // silently fail — the UI shows empty state
     } finally {
       setLoading(false);
+      setLoadingStories(false);
     }
   }, []);
 
@@ -133,11 +171,98 @@ export default function TrendingContent() {
         </div>
       </ScrollReveal>
 
+      {/* Trending Stories */}
+      {!loadingStories && trendingStories.length > 0 && (
+        <ScrollReveal>
+          <section>
+            <p className="mb-8 text-[11px] uppercase tracking-[0.3em] text-callum-muted">
+              Trending Stories
+            </p>
+            <div className="space-y-3">
+              {trendingStories.map((article, i) => (
+                <a
+                  key={article.id}
+                  href={article.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="card-enhanced group flex gap-4 items-start rounded-[14px] overflow-hidden transition-all duration-300 block"
+                >
+                  {/* Category color strip */}
+                  <div
+                    className="w-1 self-stretch flex-shrink-0 transition-all duration-300 group-hover:w-1.5"
+                    style={{
+                      background: CATEGORY_GRADIENT[article.category || ""] ||
+                        "linear-gradient(180deg, rgba(120,120,120,0.2) 0%, transparent 100%)",
+                    }}
+                  />
+                  <div className="py-4 pr-5 flex-1 min-w-0">
+                    <div className="flex items-center gap-3 mb-1.5">
+                      <span className="font-serif text-2xl font-semibold text-callum-muted opacity-20 leading-none">
+                        {String(i + 1).padStart(2, "0")}
+                      </span>
+                      {article.category && (
+                        <span className={CATEGORY_TAG_CLASS[article.category] || "category-tag"}>
+                          {CATEGORY_LABELS[article.category] || article.category}
+                        </span>
+                      )}
+                      {article.published_at && (
+                        <span className="text-[11px] text-callum-muted opacity-50">
+                          {timeAgo(article.published_at)}
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="font-serif text-lg font-semibold leading-[1.3] tracking-tight group-hover:tracking-normal transition-all duration-300 line-clamp-2">
+                      {article.title}
+                    </h3>
+                    {article.summary && (
+                      <p className="mt-1.5 text-[13px] leading-[1.6] text-callum-muted line-clamp-2">
+                        {article.summary}
+                      </p>
+                    )}
+                    {article.source && (
+                      <p className="mt-2 text-[10px] uppercase tracking-[0.12em] text-callum-muted opacity-50">
+                        {article.source}
+                      </p>
+                    )}
+                  </div>
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    className="mt-5 mr-4 shrink-0 text-callum-muted opacity-0 transition-opacity group-hover:opacity-60"
+                  >
+                    <path d="M7 17L17 7M17 7H7M17 7v10" />
+                  </svg>
+                </a>
+              ))}
+            </div>
+          </section>
+        </ScrollReveal>
+      )}
+
+      {loadingStories && (
+        <div>
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="skeleton mb-3 h-24 rounded-[14px]" />
+          ))}
+        </div>
+      )}
+
       {/* Gradient divider */}
-      <div className="gradient-divider w-full" />
+      {trendingStories.length > 0 && <div className="gradient-divider w-full" />}
+
+      {/* Topic Breakdown heading */}
+      {topics.length > 0 && (
+        <p className="text-[11px] uppercase tracking-[0.3em] text-callum-muted -mb-10">
+          Topic Breakdown
+        </p>
+      )}
 
       {/* Topics list */}
-      {topics.length === 0 && (
+      {topics.length === 0 && !loading && (
         <div className="py-24 text-center">
           <p className="font-serif text-2xl italic text-callum-muted">
             Nothing trending yet.
