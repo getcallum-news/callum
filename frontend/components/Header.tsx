@@ -77,6 +77,11 @@ export default function Header() {
               </Link>
             </MagneticButton>
             <MagneticButton>
+              <Link href="/trending" className="hover-underline text-[11px] font-medium uppercase tracking-[0.15em] opacity-60 transition-opacity hover:opacity-100">
+                Trending
+              </Link>
+            </MagneticButton>
+            <MagneticButton>
               <Link href="/rewind" className="hover-underline text-[11px] font-medium uppercase tracking-[0.15em] opacity-60 transition-opacity hover:opacity-100">
                 Rewind
               </Link>

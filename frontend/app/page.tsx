@@ -9,7 +9,6 @@ import NewsTicker from "@/components/NewsTicker";
 import HeroSubtitle from "@/components/HeroSubtitle";
 import LiveCounter from "@/components/LiveCounter";
 import SourceMap from "@/components/SourceMap";
-import TrendingTopics from "@/components/TrendingTopics";
 import ParallaxHero from "@/components/ParallaxHero";
 import ScrollReveal from "@/components/ScrollReveal";
 import MagneticButton from "@/components/MagneticButton";
@@ -95,16 +94,6 @@ export default function Home() {
         {/* Source map */}
         <ScrollReveal delay={0.1}>
           <SourceMap />
-        </ScrollReveal>
-
-        {/* Gradient divider */}
-        <div className="mx-auto max-w-4xl px-6">
-          <div className="gradient-divider w-full" />
-        </div>
-
-        {/* Trending topics */}
-        <ScrollReveal delay={0.1}>
-          <TrendingTopics />
         </ScrollReveal>
 
         {/* Gradient divider */}
