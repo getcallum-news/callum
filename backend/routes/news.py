@@ -35,12 +35,14 @@ def list_articles(
     limit: int = Query(default=20, ge=1, le=50, description="Articles per page"),
     category: str | None = Query(default=None, description="Filter by category"),
     source: str | None = Query(default=None, description="Filter by source"),
+    q: str | None = Query(default=None, max_length=200, description="Full-text search across title and summary"),
     db: Session = Depends(get_db),
 ) -> ArticleListResponse:
     """Return a paginated list of articles, newest first.
 
     Supports optional filtering by category (research, industry, tools,
     safety) and source (TechCrunch, arXiv, Hacker News, etc.).
+    Supports full-text search via the q param (ILIKE on title + summary).
     """
     query = db.query(Article).filter(Article.is_active.is_(True))
 
@@ -48,6 +50,11 @@ def list_articles(
         query = query.filter(Article.category == category)
     if source:
         query = query.filter(Article.source == source)
+    if q:
+        term = f"%{q}%"
+        query = query.filter(
+            Article.title.ilike(term) | Article.summary.ilike(term)
+        )
 
     total = query.count()
     pages = max(1, math.ceil(total / limit))

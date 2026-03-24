@@ -41,6 +41,7 @@ interface FetchArticlesParams {
   limit?: number;
   category?: string;
   source?: string;
+  q?: string;
 }
 
 /** Fetch a paginated list of articles from the backend. */

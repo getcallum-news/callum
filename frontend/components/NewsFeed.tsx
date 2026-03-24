@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import NewsCard from "./NewsCard";
 import type { Article } from "./NewsCard";
 import SkeletonCard from "./SkeletonCard";
@@ -8,6 +8,7 @@ import PullToRefresh from "./PullToRefresh";
 import MagneticButton from "./MagneticButton";
 import RippleButton from "./RippleButton";
 import BentoGrid from "./BentoGrid";
+import SearchBar from "./SearchBar";
 import { fetchArticles } from "@/lib/api";
 
 const CATEGORIES = [
@@ -23,12 +24,25 @@ const PAGE_SIZE = 20;
 export default function NewsFeed() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [category, setCategory] = useState<string | null>(null);
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Debounce search input → only fire query after 350ms of no typing
+  const handleSearchChange = (value: string) => {
+    setSearchInput(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setSearchQuery(value);
+      setPage(1);
+    }, 350);
+  };
 
   const loadArticles = useCallback(
     async (pageNum: number, append: boolean = false) => {
@@ -44,6 +58,7 @@ export default function NewsFeed() {
           page: pageNum,
           limit: PAGE_SIZE,
           category: category || undefined,
+          q: searchQuery || undefined,
         });
 
         if (append) {
@@ -62,7 +77,7 @@ export default function NewsFeed() {
         setLoadingMore(false);
       }
     },
-    [category]
+    [category, searchQuery]
   );
 
   useEffect(() => {
@@ -88,30 +103,40 @@ export default function NewsFeed() {
     <PullToRefresh onRefresh={handlePullRefresh}>
       <section className="mx-auto max-w-4xl px-6 pb-16">
         {/* Filter bar */}
-        <div className="mb-10 flex flex-wrap items-center justify-between gap-4 border-b border-[var(--border)] pb-5">
-          <div className="flex flex-wrap gap-1.5">
-            {CATEGORIES.map(({ key, label }) => (
-              <MagneticButton key={label} as="button" strength={0.2}>
-                <RippleButton>
-                  <span
-                    onClick={() => handleCategoryChange(key)}
-                    className={`inline-block px-4 py-2 text-[11px] font-medium uppercase tracking-[0.15em] transition-all duration-300 cursor-pointer rounded ${
-                      category === key
-                        ? "bg-[var(--text-primary)] text-[var(--bg)] category-active"
-                        : "text-callum-muted hover:text-[var(--text-primary)]"
-                    }`}
-                  >
-                    {label}
-                  </span>
-                </RippleButton>
-              </MagneticButton>
-            ))}
+        <div className="mb-10 flex flex-col gap-4 border-b border-[var(--border)] pb-5">
+          {/* Category filters + article count */}
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap gap-1.5">
+              {CATEGORIES.map(({ key, label }) => (
+                <MagneticButton key={label} as="button" strength={0.2}>
+                  <RippleButton>
+                    <span
+                      onClick={() => handleCategoryChange(key)}
+                      className={`inline-block px-4 py-2 text-[11px] font-medium uppercase tracking-[0.15em] transition-all duration-300 cursor-pointer rounded ${
+                        category === key
+                          ? "bg-[var(--text-primary)] text-[var(--bg)] category-active"
+                          : "text-callum-muted hover:text-[var(--text-primary)]"
+                      }`}
+                    >
+                      {label}
+                    </span>
+                  </RippleButton>
+                </MagneticButton>
+              ))}
+            </div>
+            {!loading && !searchQuery && (
+              <span className="text-[11px] tracking-wide text-callum-muted">
+                {total} article{total !== 1 ? "s" : ""}
+              </span>
+            )}
           </div>
-          {!loading && (
-            <span className="text-[11px] tracking-wide text-callum-muted">
-              {total} article{total !== 1 ? "s" : ""}
-            </span>
-          )}
+
+          {/* Search bar */}
+          <SearchBar
+            value={searchInput}
+            onChange={handleSearchChange}
+            resultCount={searchQuery && !loading ? total : null}
+          />
         </div>
 
         {/* Loading state — shimmer skeletons */}
@@ -144,10 +169,12 @@ export default function NewsFeed() {
         {!loading && !error && articles.length === 0 && (
           <div className="py-24 text-center">
             <p className="font-serif text-2xl italic text-callum-muted">
-              No articles found.
+              {searchQuery ? `No results for "${searchQuery}"` : "No articles found."}
             </p>
             <p className="mt-2 text-sm text-callum-muted">
-              Check back soon — we fetch new stories every 30 minutes.
+              {searchQuery
+                ? "Try a different keyword or clear the search."
+                : "Check back soon — we fetch new stories every 30 minutes."}
             </p>
           </div>
         )}
