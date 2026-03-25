@@ -187,14 +187,25 @@ export default function TrendingContent() {
                   rel="noopener noreferrer"
                   className="card-enhanced group flex gap-4 items-start rounded-[14px] overflow-hidden transition-all duration-300 block"
                 >
-                  {/* Category color strip */}
-                  <div
-                    className="w-1 self-stretch flex-shrink-0 transition-all duration-300 group-hover:w-1.5"
-                    style={{
-                      background: CATEGORY_GRADIENT[article.category || ""] ||
-                        "linear-gradient(180deg, rgba(120,120,120,0.2) 0%, transparent 100%)",
-                    }}
-                  />
+                  {/* Article thumbnail */}
+                  {article.image_url ? (
+                    <div className="w-24 h-full flex-shrink-0 self-stretch overflow-hidden">
+                      <img
+                        src={article.image_url}
+                        alt=""
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        loading="lazy"
+                      />
+                    </div>
+                  ) : (
+                    <div
+                      className="w-1 self-stretch flex-shrink-0 transition-all duration-300 group-hover:w-1.5"
+                      style={{
+                        background: CATEGORY_GRADIENT[article.category || ""] ||
+                          "linear-gradient(180deg, rgba(120,120,120,0.2) 0%, transparent 100%)",
+                      }}
+                    />
+                  )}
                   <div className="py-4 pr-5 flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-1.5">
                       <span className="font-serif text-2xl font-semibold text-callum-muted opacity-20 leading-none">

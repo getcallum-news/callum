@@ -38,6 +38,7 @@ class Article(Base):
     )
     relevance_score = Column(Integer, default=0)
     category = Column(String(50), nullable=True)
+    image_url = Column(String(2000), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
 
     def __repr__(self) -> str:

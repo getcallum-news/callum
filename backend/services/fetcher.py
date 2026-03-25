@@ -23,7 +23,73 @@ from sqlalchemy.exc import IntegrityError
 from models import Article, FetchCycle
 from services.filter import passes_filter, detect_category
 
+import re
+
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# og:image scraper
+# ---------------------------------------------------------------------------
+
+# Regex to extract og:image from HTML without a full parser (fast)
+OG_IMAGE_RE = re.compile(
+    r'<meta\s+[^>]*property=["\']og:image["\'][^>]*content=["\']([^"\']+)["\']'
+    r'|<meta\s+[^>]*content=["\']([^"\']+)["\'][^>]*property=["\']og:image["\']',
+    re.IGNORECASE,
+)
+
+# Concurrency limit for og:image fetches (don't hammer servers)
+OG_IMAGE_CONCURRENCY = 8
+OG_IMAGE_TIMEOUT = 10.0
+
+
+async def _fetch_og_image(client: httpx.AsyncClient, url: str) -> str | None:
+    """Fetch the og:image URL from an article page.
+
+    Only downloads the first 50KB of HTML — og:image is always in <head>.
+    Returns the image URL string or None.
+    """
+    if not url:
+        return None
+    try:
+        # Stream the response and only read the head portion
+        response = await client.get(
+            url,
+            timeout=OG_IMAGE_TIMEOUT,
+            headers={"Range": "bytes=0-51200"},  # First 50KB
+        )
+        # Some servers don't support Range, so accept any 2xx
+        if response.status_code >= 400:
+            return None
+
+        html = response.text[:50000]
+        match = OG_IMAGE_RE.search(html)
+        if match:
+            image_url = match.group(1) or match.group(2)
+            # Basic validation: must look like a URL
+            if image_url and image_url.startswith(("http://", "https://")):
+                return image_url[:2000]  # Truncate to column limit
+        return None
+    except Exception:
+        return None
+
+
+async def fetch_og_images(articles: list[dict]) -> None:
+    """Fetch og:image for a batch of articles in parallel.
+
+    Modifies articles in-place by adding an 'image_url' key.
+    """
+    semaphore = asyncio.Semaphore(OG_IMAGE_CONCURRENCY)
+
+    async def fetch_with_limit(article: dict) -> None:
+        async with semaphore:
+            article["image_url"] = await _fetch_og_image(client, article.get("url", ""))
+
+    async with httpx.AsyncClient(follow_redirects=True) as client:
+        await asyncio.gather(
+            *[fetch_with_limit(a) for a in articles],
+            return_exceptions=True,
+        )
 
 # ---------------------------------------------------------------------------
 # RSS feed sources
@@ -344,6 +410,7 @@ def save_articles(db: Session, raw_articles: list[dict[str, Any]]) -> dict[str, 
             published_at=raw.get("published_at"),
             relevance_score=score,
             category=category,
+            image_url=raw.get("image_url"),
             is_active=True,
         )
 

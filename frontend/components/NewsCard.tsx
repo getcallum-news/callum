@@ -16,6 +16,7 @@ interface Article {
   published_at: string | null;
   relevance_score: number;
   category: string | null;
+  image_url: string | null;
 }
 
 interface NewsCardProps {

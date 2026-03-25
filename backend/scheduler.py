@@ -18,7 +18,7 @@ import threading
 from apscheduler.schedulers.background import BackgroundScheduler
 
 from database import SessionLocal
-from services.fetcher import fetch_all_sources, save_articles
+from services.fetcher import fetch_all_sources, fetch_og_images, save_articles
 from services.notifier import send_notifications
 
 logger = logging.getLogger(__name__)
@@ -44,6 +44,11 @@ def _run_fetch_cycle() -> None:
         # Fetch from all sources
         raw_articles = loop.run_until_complete(fetch_all_sources())
         logger.info("Fetched %d articles total", len(raw_articles))
+
+        # Scrape og:image from each article page
+        loop.run_until_complete(fetch_og_images(raw_articles))
+        images_found = sum(1 for a in raw_articles if a.get("image_url"))
+        logger.info("Found og:images for %d / %d articles", images_found, len(raw_articles))
 
         # Filter and save to database
         db = SessionLocal()

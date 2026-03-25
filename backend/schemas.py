@@ -26,6 +26,7 @@ class ArticleResponse(BaseModel):
     published_at: datetime | None = None
     relevance_score: int = 0
     category: str | None = None
+    image_url: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
