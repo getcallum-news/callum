@@ -29,6 +29,7 @@ interface ArticlesResponse {
     published_at: string | null;
     relevance_score: number;
     category: string | null;
+    image_url: string | null;
   }>;
   total: number;
   page: number;
