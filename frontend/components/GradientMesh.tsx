@@ -26,7 +26,7 @@ export default function GradientMesh() {
   }, []);
 
   return (
-    <div className="absolute inset-0 overflow-hidden" style={{ zIndex: 0 }}>
+    <div className="absolute inset-0 overflow-hidden" style={{ zIndex: 0, mask: "radial-gradient(ellipse 70% 60% at 50% 50%, black 30%, transparent 100%)", WebkitMask: "radial-gradient(ellipse 70% 60% at 50% 50%, black 30%, transparent 100%)" }}>
       {/* Primary mesh layer — slow drift */}
       <div
         className="absolute inset-0"

@@ -50,7 +50,7 @@ export default function ParallaxHero({
   }, []);
 
   return (
-    <div ref={containerRef} className="relative overflow-hidden">
+    <div ref={containerRef} className="relative" style={{ mask: "linear-gradient(to bottom, black 80%, transparent 100%)", WebkitMask: "linear-gradient(to bottom, black 80%, transparent 100%)" }}>
       {children}
     </div>
   );
