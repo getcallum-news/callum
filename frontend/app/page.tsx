@@ -16,14 +16,12 @@ import HeroTextReveal from "@/components/HeroTextReveal";
 import MagneticText from "@/components/MagneticText";
 import dynamic from "next/dynamic";
 
-const ParticleFlow = dynamic(() => import("@/components/ParticleFlow"), { ssr: false });
 const SunlitDust = dynamic(() => import("@/components/SunlitDust"), { ssr: false });
 const GradientMesh = dynamic(() => import("@/components/GradientMesh"), { ssr: false });
 
 export default function Home() {
   return (
     <div className="noise-overlay">
-      <ParticleFlow />
       <SunlitDust />
       <IntroSplash />
       <CustomCursor />

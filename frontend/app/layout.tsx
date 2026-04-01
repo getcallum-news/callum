@@ -8,6 +8,9 @@ import "lenis/dist/lenis.css";
 const SmoothScroll = dynamic(() => import("@/components/SmoothScroll"), {
   ssr: false,
 });
+const ParticleFlow = dynamic(() => import("@/components/ParticleFlow"), {
+  ssr: false,
+});
 
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
@@ -68,6 +71,7 @@ export default function RootLayout({
       </head>
       <body className="font-sans bg-callum-dark text-callum-accent antialiased transition-colors duration-200 dark:bg-callum-dark dark:text-callum-accent">
         <ErrorBoundary>
+          <ParticleFlow />
           <SmoothScroll>
             {children}
           </SmoothScroll>
