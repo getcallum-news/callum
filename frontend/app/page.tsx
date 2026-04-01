@@ -10,17 +10,20 @@ import HeroSubtitle from "@/components/HeroSubtitle";
 import LiveCounter from "@/components/LiveCounter";
 import SourceMap from "@/components/SourceMap";
 import ParallaxHero from "@/components/ParallaxHero";
-import ScrollReveal from "@/components/ScrollReveal";
+import GSAPScrollReveal from "@/components/GSAPScrollReveal";
 import MagneticButton from "@/components/MagneticButton";
+import HeroTextReveal from "@/components/HeroTextReveal";
+import MagneticText from "@/components/MagneticText";
 import dynamic from "next/dynamic";
-const StarryNight = dynamic(() => import("@/components/StarryNight"), { ssr: false });
+
+const ParticleFlow = dynamic(() => import("@/components/ParticleFlow"), { ssr: false });
 const SunlitDust = dynamic(() => import("@/components/SunlitDust"), { ssr: false });
 const GradientMesh = dynamic(() => import("@/components/GradientMesh"), { ssr: false });
 
 export default function Home() {
   return (
     <div className="noise-overlay">
-      <StarryNight />
+      <ParticleFlow />
       <SunlitDust />
       <IntroSplash />
       <CustomCursor />
@@ -45,11 +48,18 @@ export default function Home() {
             <div data-parallax="0.12" className="relative z-10">
               {/* Glow accent behind title */}
               <div className="hero-glow absolute -left-10 top-1/2 -translate-y-1/2 w-[120%] h-[150%] pointer-events-none" aria-hidden="true" />
-              <h1 className="relative animate-reveal-delay-1 font-serif text-5xl font-semibold leading-[1.1] tracking-tight sm:text-6xl md:text-7xl lg:text-8xl">
-                We read the internet
+              <HeroTextReveal
+                className="relative font-serif text-5xl font-semibold leading-[1.1] tracking-tight sm:text-6xl md:text-7xl lg:text-8xl"
+                delay={0.3}
+              >
+                <MagneticText>
+                  We read the internet
+                </MagneticText>
                 <br />
-                <span className="italic hero-gradient-text">so you don&apos;t have to.</span>
-              </h1>
+                <MagneticText className="italic hero-gradient-text">
+                  so you don&apos;t have to.
+                </MagneticText>
+              </HeroTextReveal>
             </div>
             <div data-parallax="0.06" className="relative z-10">
               <HeroSubtitle />
@@ -82,9 +92,9 @@ export default function Home() {
         </div>
 
         {/* Live counter — scanned vs kept */}
-        <ScrollReveal>
+        <GSAPScrollReveal>
           <LiveCounter />
-        </ScrollReveal>
+        </GSAPScrollReveal>
 
         {/* Gradient divider */}
         <div className="mx-auto max-w-4xl px-6">
@@ -92,9 +102,9 @@ export default function Home() {
         </div>
 
         {/* Source map */}
-        <ScrollReveal delay={0.1}>
+        <GSAPScrollReveal delay={0.1}>
           <SourceMap />
-        </ScrollReveal>
+        </GSAPScrollReveal>
 
         {/* Gradient divider */}
         <div className="mx-auto max-w-4xl px-6">

@@ -1,7 +1,8 @@
 "use client";
 
 import TiltCard from "./TiltCard";
-import ScrollReveal from "./ScrollReveal";
+import GSAPScrollReveal from "./GSAPScrollReveal";
+import CardGlow from "./CardGlow";
 
 /**
  * Single article card with 3D tilt hover and scroll-triggered reveal.
@@ -66,9 +67,10 @@ const CATEGORY_GRADIENT: Record<string, string> = {
 
 export default function NewsCard({ article, index }: NewsCardProps) {
   return (
-    <ScrollReveal delay={Math.min(index * 0.06, 0.5)}>
-      <TiltCard>
-        <article className="card-enhanced group rounded-[14px] mb-4 overflow-hidden transition-all duration-300">
+    <GSAPScrollReveal delay={Math.min(index * 0.06, 0.5)}>
+      <CardGlow>
+        <TiltCard>
+          <article className="card-enhanced group rounded-[14px] mb-4 overflow-hidden transition-all duration-300">
           {/* Category gradient strip */}
           <div
             className="h-1 w-full transition-all duration-500 group-hover:h-1.5"
@@ -145,8 +147,9 @@ export default function NewsCard({ article, index }: NewsCardProps) {
           </div>
           </div>
         </article>
-      </TiltCard>
-    </ScrollReveal>
+        </TiltCard>
+      </CardGlow>
+    </GSAPScrollReveal>
   );
 }
 

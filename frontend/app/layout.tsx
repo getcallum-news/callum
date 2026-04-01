@@ -1,7 +1,13 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, Inter } from "next/font/google";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import dynamic from "next/dynamic";
 import "./globals.css";
+import "lenis/dist/lenis.css";
+
+const SmoothScroll = dynamic(() => import("@/components/SmoothScroll"), {
+  ssr: false,
+});
 
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
@@ -62,7 +68,9 @@ export default function RootLayout({
       </head>
       <body className="font-sans bg-callum-dark text-callum-accent antialiased transition-colors duration-200 dark:bg-callum-dark dark:text-callum-accent">
         <ErrorBoundary>
-          {children}
+          <SmoothScroll>
+            {children}
+          </SmoothScroll>
         </ErrorBoundary>
       </body>
     </html>

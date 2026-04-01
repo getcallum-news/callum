@@ -25,8 +25,18 @@
   --border: var(--border-light);
 }
 
-html {
-  scroll-behavior: smooth;
+html, html.lenis, html.lenis body {
+  height: auto;
+}
+
+/* Card glow colors per theme */
+.dark .card-glow-wrap {
+  --glow-color: rgba(120, 140, 255, 0.07);
+  --glow-border-color: rgba(120, 140, 255, 0.15);
+}
+.light .card-glow-wrap {
+  --glow-color: rgba(200, 160, 80, 0.08);
+  --glow-border-color: rgba(200, 160, 80, 0.18);
 }
 
 body {
