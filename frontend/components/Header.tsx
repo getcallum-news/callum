@@ -105,7 +105,7 @@ export default function Header() {
               className="relative p-2 opacity-50 transition-all duration-300 hover:opacity-100"
               aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
             >
-              {/* Sun icon — visible in dark mode */}
+              {/* Warm flame — visible in dark mode (switch to light) */}
               <svg
                 width="16"
                 height="16"
@@ -116,21 +116,15 @@ export default function Header() {
                 className="absolute inset-0 m-auto transition-all duration-500"
                 style={{
                   opacity: isDark ? 1 : 0,
-                  transform: isDark ? "rotate(0deg) scale(1)" : "rotate(90deg) scale(0.5)",
+                  transform: isDark ? "scale(1)" : "scale(0.6)",
+                  filter: isDark ? "drop-shadow(0 0 4px rgba(245,158,11,0.4))" : "none",
                 }}
               >
-                <circle cx="12" cy="12" r="5" />
-                <line x1="12" y1="1" x2="12" y2="3" />
-                <line x1="12" y1="21" x2="12" y2="23" />
-                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-                <line x1="1" y1="12" x2="3" y2="12" />
-                <line x1="21" y1="12" x2="23" y2="12" />
-                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+                <path d="M12 2c.5 3.5-1 6-3 8 1.5.5 3 2 3 5 0-3 1.5-4.5 3-5-2-2-3.5-4.5-3-8z" strokeLinejoin="round" />
+                <path d="M12 22a7 7 0 0 1-4-12.5c.5 2.5 2 4 4 4.5 2-.5 3.5-2 4-4.5A7 7 0 0 1 12 22z" strokeLinejoin="round" />
               </svg>
 
-              {/* Moon icon — visible in light mode */}
+              {/* Moon crescent — visible in light mode (switch to dark) */}
               <svg
                 width="16"
                 height="16"
@@ -141,7 +135,8 @@ export default function Header() {
                 className="transition-all duration-500"
                 style={{
                   opacity: isDark ? 0 : 1,
-                  transform: isDark ? "rotate(-90deg) scale(0.5)" : "rotate(0deg) scale(1)",
+                  transform: isDark ? "scale(0.6)" : "scale(1)",
+                  filter: !isDark ? "drop-shadow(0 0 4px rgba(120,140,255,0.4))" : "none",
                 }}
               >
                 <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />

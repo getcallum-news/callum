@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // ── Shader sources ──────────────────────────────────────────────
 const VERT_PARTICLES = `
@@ -112,6 +112,16 @@ const BASE_SPEED = 0.15;
 export default function ParticleFlow() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef<number>(0);
+  const [hidden, setHidden] = useState(false);
+
+  // Hide in light mode — ShaderBackground takes over
+  useEffect(() => {
+    const check = () => setHidden(!document.documentElement.classList.contains("dark"));
+    check();
+    const obs = new MutationObserver(check);
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => obs.disconnect();
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -387,6 +397,8 @@ export default function ParticleFlow() {
       observer.disconnect();
     };
   }, []);
+
+  if (hidden) return null;
 
   return (
     <canvas

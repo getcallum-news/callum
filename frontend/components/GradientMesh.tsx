@@ -39,10 +39,10 @@ export default function GradientMesh() {
               radial-gradient(ellipse at 70% 60%, rgba(20,100,120,0.12) 0%, transparent 40%)
             `
             : `
-              radial-gradient(ellipse at 25% 40%, rgba(220,180,100,0.18) 0%, transparent 50%),
-              radial-gradient(ellipse at 75% 30%, rgba(240,190,130,0.14) 0%, transparent 50%),
-              radial-gradient(ellipse at 50% 75%, rgba(200,160,100,0.1) 0%, transparent 45%),
-              radial-gradient(ellipse at 30% 70%, rgba(180,200,160,0.07) 0%, transparent 40%)
+              radial-gradient(ellipse at 25% 40%, rgba(245,158,11,0.2) 0%, transparent 50%),
+              radial-gradient(ellipse at 75% 30%, rgba(234,88,12,0.15) 0%, transparent 50%),
+              radial-gradient(ellipse at 50% 75%, rgba(251,146,60,0.1) 0%, transparent 45%),
+              radial-gradient(ellipse at 30% 70%, rgba(217,119,6,0.08) 0%, transparent 40%)
             `,
           animation: "meshDrift 14s ease-in-out infinite alternate",
           transition: "background 0.6s ease",
@@ -59,8 +59,8 @@ export default function GradientMesh() {
               radial-gradient(ellipse at 30% 70%, rgba(40,120,180,0.1) 0%, transparent 40%)
             `
             : `
-              radial-gradient(ellipse at 60% 25%, rgba(210,170,90,0.08) 0%, transparent 45%),
-              radial-gradient(ellipse at 40% 65%, rgba(190,150,80,0.06) 0%, transparent 40%)
+              radial-gradient(ellipse at 60% 25%, rgba(245,158,11,0.1) 0%, transparent 45%),
+              radial-gradient(ellipse at 40% 65%, rgba(234,88,12,0.07) 0%, transparent 40%)
             `,
           animation: "meshDriftReverse 18s ease-in-out infinite alternate",
           transition: "background 0.6s ease",
@@ -73,7 +73,7 @@ export default function GradientMesh() {
         style={{
           background: isDark
             ? "radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(13,13,13,0.6) 100%)"
-            : "radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(240,236,228,0.5) 100%)",
+            : "radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(10,8,6,0.6) 100%)",
           transition: "background 0.6s ease",
         }}
       />

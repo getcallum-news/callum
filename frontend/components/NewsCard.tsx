@@ -20,6 +20,7 @@ interface Article {
   image_url: string | null;
 }
 
+
 interface NewsCardProps {
   article: Article;
   index: number;

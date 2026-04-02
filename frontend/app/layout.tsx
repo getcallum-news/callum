@@ -11,6 +11,9 @@ const SmoothScroll = dynamic(() => import("@/components/SmoothScroll"), {
 const ParticleFlow = dynamic(() => import("@/components/ParticleFlow"), {
   ssr: false,
 });
+const ShaderBackground = dynamic(() => import("@/components/ShaderBackground"), {
+  ssr: false,
+});
 
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
@@ -72,6 +75,7 @@ export default function RootLayout({
       <body className="font-sans bg-callum-dark text-callum-accent antialiased transition-colors duration-200 dark:bg-callum-dark dark:text-callum-accent">
         <ErrorBoundary>
           <ParticleFlow />
+          <ShaderBackground />
           <SmoothScroll>
             {children}
           </SmoothScroll>

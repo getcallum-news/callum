@@ -103,10 +103,10 @@ export default function CustomCursor() {
         const size = 3 * (1 - i / trail.length);
         const color = isDark
           ? `rgba(180, 190, 255, ${p.alpha})`
-          : `rgba(120, 90, 50, ${p.alpha})`;
+          : `rgba(245, 180, 80, ${p.alpha})`;
         const glow = isDark
           ? `rgba(120, 140, 255, ${p.alpha * 0.5})`
-          : `rgba(180, 140, 60, ${p.alpha * 0.3})`;
+          : `rgba(245, 158, 11, ${p.alpha * 0.5})`;
 
         // Outer glow
         ctx.beginPath();

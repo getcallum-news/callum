@@ -8,27 +8,18 @@ interface ThemeTransitionProps {
 }
 
 /**
- * Full-screen cinematic theme transition.
+ * Theme transition overlays.
  *
- * The trick to a seamless switch: the overlay's final color before
- * fading matches the destination theme's background exactly. The
- * theme switches underneath while the overlay is fully opaque at
- * that matching color — so the fade-out is invisible.
+ * dark → light: Warm amber sweep from left to right with glowing
+ *   streaks that match the shader's shooting-star aesthetic.
  *
- * Sunrise: dark → warm glow → sun rises → overlay turns #f0ece4 →
- *   theme switches to light underneath → overlay fades out (same color = invisible).
- *
- * Moonrise: light → deep blue → moon + stars → overlay turns #0d0d0d →
- *   theme switches to dark underneath → overlay fades out (same color = invisible).
+ * light → dark: Original moonrise — deep blue sky, stars, moon.
  */
 export default function ThemeTransition({ toLight, onComplete }: ThemeTransitionProps) {
   const [phase, setPhase] = useState(0);
-  // phase 0: mount
-  // phase 1: animation plays (sun/moon + sky)
-  // phase 2: overlay matches destination color, theme switches underneath
-  // phase 3: overlay fades out (seamless because colors match)
   const hasCompleted = useRef(false);
   const themeSwitched = useRef(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     const t1 = setTimeout(() => setPhase(1), 30);
@@ -44,7 +35,7 @@ export default function ThemeTransition({ toLight, onComplete }: ThemeTransition
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); };
   }, [onComplete]);
 
-  // Switch theme at phase 2 — overlay is fully opaque and matches destination
+  // Switch theme at phase 2 — overlay is fully opaque
   useEffect(() => {
     if (phase >= 2 && !themeSwitched.current) {
       themeSwitched.current = true;
@@ -60,6 +51,165 @@ export default function ThemeTransition({ toLight, onComplete }: ThemeTransition
     }
   }, [phase, toLight]);
 
+  // ─── Canvas animation for dark → light (warm sweep) ───
+  useEffect(() => {
+    if (!toLight) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    ctx.scale(dpr, dpr);
+
+    // Generate streaks — randomized shooting stars
+    const streaks = Array.from({ length: 18 }, () => ({
+      y: Math.random() * h,
+      speed: 0.8 + Math.random() * 1.5,
+      length: 80 + Math.random() * 250,
+      thickness: 1 + Math.random() * 2.5,
+      delay: Math.random() * 0.3,
+      opacity: 0.3 + Math.random() * 0.7,
+      hue: 30 + Math.random() * 20, // orange-amber range
+    }));
+
+    let startTime: number | null = null;
+    let rafId: number;
+    const totalDuration = 1050;
+
+    const animate = (now: number) => {
+      if (!startTime) startTime = now;
+      const elapsed = now - startTime;
+      const t = Math.min(elapsed / totalDuration, 1);
+
+      // Smooth ease-in-out
+      const eased = t < 0.5
+        ? 4 * t * t * t
+        : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+      ctx.clearRect(0, 0, w, h);
+
+      // Base: dark background
+      ctx.fillStyle = "#0d0d0d";
+      ctx.fillRect(0, 0, w, h);
+
+      // Left-to-right warm wash — the sweep
+      const sweepX = eased * (w + 300);
+
+      // Soft leading edge glow
+      const glowWidth = 400;
+      const glowGrad = ctx.createLinearGradient(
+        Math.max(0, sweepX - glowWidth), 0,
+        sweepX, 0
+      );
+      glowGrad.addColorStop(0, "transparent");
+      glowGrad.addColorStop(0.3, "rgba(245, 130, 20, 0.06)");
+      glowGrad.addColorStop(0.7, "rgba(245, 158, 11, 0.15)");
+      glowGrad.addColorStop(1, "rgba(255, 180, 50, 0.25)");
+      ctx.fillStyle = glowGrad;
+      ctx.fillRect(0, 0, w, h);
+
+      // Main warm fill behind the sweep
+      const fillGrad = ctx.createLinearGradient(0, 0, sweepX, 0);
+      fillGrad.addColorStop(0, "rgba(10, 8, 6, 1)");
+      fillGrad.addColorStop(0.6, "rgba(25, 15, 8, 1)");
+      fillGrad.addColorStop(0.85, "rgba(50, 25, 10, 1)");
+      fillGrad.addColorStop(1, "rgba(10, 8, 6, 1)");
+      ctx.fillStyle = fillGrad;
+      ctx.fillRect(0, 0, sweepX, h);
+
+      // Vertical warm light band at the sweep edge
+      const bandWidth = 120;
+      const bandGrad = ctx.createLinearGradient(
+        sweepX - bandWidth, 0,
+        sweepX + 30, 0
+      );
+      bandGrad.addColorStop(0, "transparent");
+      bandGrad.addColorStop(0.4, "rgba(255, 180, 60, 0.3)");
+      bandGrad.addColorStop(0.7, "rgba(255, 200, 80, 0.5)");
+      bandGrad.addColorStop(0.9, "rgba(255, 220, 120, 0.35)");
+      bandGrad.addColorStop(1, "transparent");
+      ctx.fillStyle = bandGrad;
+      ctx.fillRect(0, 0, w, h);
+
+      // Draw streaks
+      for (const s of streaks) {
+        const streakProgress = Math.max(0, Math.min(1, (t - s.delay) / (1 - s.delay)));
+        if (streakProgress <= 0) continue;
+
+        const streakEased = 1 - Math.pow(1 - streakProgress, 2.5);
+        const sx = streakEased * (w + s.length) * s.speed;
+        const headX = Math.min(sx, w + s.length);
+        const tailX = Math.max(headX - s.length * streakEased, -s.length);
+
+        if (headX < 0) continue;
+
+        const grad = ctx.createLinearGradient(tailX, s.y, headX, s.y);
+        grad.addColorStop(0, "transparent");
+        grad.addColorStop(0.3, `hsla(${s.hue}, 90%, 65%, ${s.opacity * 0.2 * (1 - streakProgress * 0.5)})`);
+        grad.addColorStop(0.8, `hsla(${s.hue}, 95%, 75%, ${s.opacity * 0.7 * (1 - streakProgress * 0.3)})`);
+        grad.addColorStop(1, `hsla(${s.hue}, 100%, 90%, ${s.opacity * (1 - streakProgress * 0.4)})`);
+
+        // Streak glow
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+        ctx.beginPath();
+        ctx.moveTo(tailX, s.y);
+        ctx.lineTo(headX, s.y);
+        ctx.lineWidth = s.thickness + 4;
+        ctx.strokeStyle = `hsla(${s.hue}, 80%, 60%, ${s.opacity * 0.15 * (1 - streakProgress * 0.5)})`;
+        ctx.stroke();
+
+        // Streak core
+        ctx.beginPath();
+        ctx.moveTo(tailX, s.y);
+        ctx.lineTo(headX, s.y);
+        ctx.lineWidth = s.thickness;
+        ctx.strokeStyle = grad;
+        ctx.stroke();
+
+        // Bright head dot
+        const dotAlpha = s.opacity * 0.8 * (1 - streakProgress * 0.5);
+        if (dotAlpha > 0.05) {
+          ctx.beginPath();
+          ctx.arc(headX, s.y, s.thickness + 1, 0, Math.PI * 2);
+          ctx.fillStyle = `hsla(${s.hue}, 100%, 85%, ${dotAlpha})`;
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      if (t < 1) {
+        rafId = requestAnimationFrame(animate);
+      }
+    };
+
+    rafId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(rafId);
+  }, [toLight]);
+
+  // ─── SUNRISE (dark → light): Canvas sweep ───
+  if (toLight) {
+    return (
+      <canvas
+        ref={canvasRef}
+        className="fixed inset-0 z-[9998]"
+        style={{
+          width: "100vw",
+          height: "100vh",
+          opacity: phase >= 3 ? 0 : 1,
+          transition: "opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1)",
+          pointerEvents: phase >= 3 ? "none" : "auto",
+        }}
+      />
+    );
+  }
+
+  // ─── MOONRISE (light → dark): Original moon + stars ───
   const starsRef = useRef(
     Array.from({ length: 40 }, (_, i) => ({
       id: i,
@@ -71,97 +221,6 @@ export default function ThemeTransition({ toLight, onComplete }: ThemeTransition
     }))
   );
 
-  if (toLight) {
-    // ─── SUNRISE ───
-    // Phase 0: solid dark
-    // Phase 1: warm sky + sun rising
-    // Phase 2: solid #f0ece4 (matches light theme bg) — theme switches now
-    // Phase 3: fade out overlay
-    return (
-      <div
-        className="fixed inset-0 z-[9998] overflow-hidden"
-        style={{
-          opacity: phase >= 3 ? 0 : 1,
-          transition: "opacity 0.6s ease",
-          pointerEvents: phase >= 3 ? "none" : "auto",
-        }}
-      >
-        {/* Sky background — transitions through warm tones to solid white */}
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              phase === 0 ? "#0d0d0d"
-              : phase === 1 ? "linear-gradient(to top, #ff9e57 0%, #ffc87a 30%, #ffecd2 60%, #f0ece4 100%)"
-              : "#f0ece4",
-            transition: phase === 1
-              ? "background 0.7s cubic-bezier(0.22, 1, 0.36, 1)"
-              : "background 0.3s ease",
-          }}
-        />
-
-        {/* Warm horizon glow */}
-        <div
-          className="absolute bottom-0 left-1/2"
-          style={{
-            width: phase >= 1 ? "250vw" : "0",
-            height: phase >= 1 && phase < 2 ? "70vh" : "0",
-            transform: "translateX(-50%)",
-            background: "radial-gradient(ellipse at 50% 100%, rgba(255,180,60,0.5) 0%, rgba(255,140,40,0.2) 40%, transparent 70%)",
-            transition: "all 0.8s cubic-bezier(0.22, 1, 0.36, 1)",
-          }}
-        />
-
-        {/* Sun */}
-        <div
-          className="absolute left-1/2"
-          style={{
-            bottom: phase === 0 ? "-15%" : phase === 1 ? "35%" : "50%",
-            transform: "translateX(-50%)",
-            transition: "bottom 0.9s cubic-bezier(0.22, 1, 0.36, 1)",
-            opacity: phase >= 2 ? 0 : 1,
-            ...(phase >= 2 ? { transition: "bottom 0.9s cubic-bezier(0.22,1,0.36,1), opacity 0.3s ease" } : {}),
-          }}
-        >
-          {/* Soft outer glow */}
-          <div
-            style={{
-              position: "absolute",
-              left: "50%",
-              top: "50%",
-              transform: "translate(-50%, -50%)",
-              width: phase >= 1 ? 280 : 0,
-              height: phase >= 1 ? 280 : 0,
-              borderRadius: "50%",
-              background: "radial-gradient(circle, rgba(255,200,80,0.3) 0%, rgba(255,160,50,0.1) 40%, transparent 70%)",
-              transition: "all 0.8s cubic-bezier(0.22, 1, 0.36, 1)",
-            }}
-          />
-
-          {/* Sun body */}
-          <div
-            style={{
-              position: "relative",
-              width: phase >= 1 ? 70 : 10,
-              height: phase >= 1 ? 70 : 10,
-              borderRadius: "50%",
-              background: "radial-gradient(circle at 40% 40%, #fffbe8 0%, #ffd97a 40%, #ffb347 70%, #ff8c42 100%)",
-              boxShadow: phase >= 1
-                ? "0 0 50px rgba(255,200,80,0.7), 0 0 100px rgba(255,180,60,0.3), 0 0 200px rgba(255,140,40,0.15)"
-                : "0 0 5px rgba(255,200,80,0.2)",
-              transition: "all 0.8s cubic-bezier(0.22, 1, 0.36, 1)",
-            }}
-          />
-        </div>
-      </div>
-    );
-  }
-
-  // ─── MOONRISE / NIGHTFALL ───
-  // Phase 0: solid light
-  // Phase 1: deep blue sky + moon + stars
-  // Phase 2: solid #0d0d0d (matches dark theme bg) — theme switches now
-  // Phase 3: fade out overlay
   return (
     <div
       className="fixed inset-0 z-[9998] overflow-hidden"
@@ -176,7 +235,7 @@ export default function ThemeTransition({ toLight, onComplete }: ThemeTransition
         className="absolute inset-0"
         style={{
           background:
-            phase === 0 ? "#f0ece4"
+            phase === 0 ? "#0a0806"
             : phase === 1 ? "linear-gradient(to bottom, #0a0a1a 0%, #1a1a3e 30%, #0d0d1a 60%, #0d0d0d 100%)"
             : "#0d0d0d",
           transition: phase === 1
