@@ -398,8 +398,6 @@ export default function ParticleFlow() {
     };
   }, []);
 
-  if (hidden) return null;
-
   return (
     <canvas
       ref={canvasRef}
@@ -408,7 +406,9 @@ export default function ParticleFlow() {
         inset: 0,
         zIndex: 0,
         pointerEvents: "none",
-        opacity: 0.6,
+        opacity: hidden ? 0 : 0.6,
+        transition: "opacity 0.6s ease",
+        visibility: hidden ? "hidden" as const : "visible" as const,
       }}
     />
   );
