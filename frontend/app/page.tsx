@@ -18,6 +18,7 @@ import dynamic from "next/dynamic";
 
 const SunlitDust = dynamic(() => import("@/components/SunlitDust"), { ssr: false });
 const GradientMesh = dynamic(() => import("@/components/GradientMesh"), { ssr: false });
+const RobotSection = dynamic(() => import("@/components/RobotSection"), { ssr: false });
 
 export default function Home() {
   return (
@@ -83,6 +84,16 @@ export default function Home() {
             </div>
           </section>
         </ParallaxHero>
+
+        {/* Gradient divider */}
+        <div className="mx-auto max-w-4xl px-6">
+          <div className="gradient-divider w-full" />
+        </div>
+
+        {/* Interactive 3D Robot */}
+        <GSAPScrollReveal delay={0.1}>
+          <RobotSection />
+        </GSAPScrollReveal>
 
         {/* Gradient divider */}
         <div className="mx-auto max-w-4xl px-6">
