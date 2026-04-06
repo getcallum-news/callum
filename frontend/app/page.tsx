@@ -18,12 +18,9 @@ import dynamic from "next/dynamic";
 
 const SunlitDust = dynamic(() => import("@/components/SunlitDust"), { ssr: false });
 const GradientMesh = dynamic(() => import("@/components/GradientMesh"), { ssr: false });
-const RobotSection = dynamic(() => import("@/components/RobotSection"), { ssr: false });
-
 export default function Home() {
   return (
     <div className="noise-overlay">
-      <RobotSection />
       <SunlitDust />
       <IntroSplash />
       <CustomCursor />
