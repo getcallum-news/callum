@@ -11,6 +11,7 @@ const ROBOT_SCENE_URL =
  * Theme-aware filter tinting for dark/light mode.
  */
 export default function RobotSection() {
+  const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const appRef = useRef<any>(null);
   const [isDark, setIsDark] = useState(true);
@@ -32,7 +33,14 @@ export default function RobotSection() {
   // Load Spline scene via runtime
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    const container = containerRef.current;
+    if (!canvas || !container) return;
+
+    // Set canvas pixel dimensions
+    const rect = container.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
 
     let cancelled = false;
 
@@ -49,12 +57,21 @@ export default function RobotSection() {
           setLoaded(true);
         }
       } catch (err) {
-        console.warn("Spline failed to load:", err);
+        console.warn("Spline load failed, falling back:", err);
       }
     })();
 
+    const onResize = () => {
+      const r = container.getBoundingClientRect();
+      const d = window.devicePixelRatio || 1;
+      canvas.width = r.width * d;
+      canvas.height = r.height * d;
+    };
+    window.addEventListener("resize", onResize);
+
     return () => {
       cancelled = true;
+      window.removeEventListener("resize", onResize);
       if (appRef.current) {
         try { appRef.current.dispose(); } catch {}
         appRef.current = null;
@@ -64,7 +81,8 @@ export default function RobotSection() {
 
   return (
     <div
-      className="pointer-events-none fixed z-[1]"
+      ref={containerRef}
+      className="fixed z-[1]"
       style={{
         right: 0,
         bottom: 0,
@@ -79,10 +97,10 @@ export default function RobotSection() {
     >
       <canvas
         ref={canvasRef}
-        className="pointer-events-auto"
         style={{
           width: "100%",
           height: "100%",
+          pointerEvents: "auto",
           filter: isDark
             ? "saturate(0.7) brightness(0.6) hue-rotate(-15deg)"
             : "saturate(0.9) brightness(0.55) sepia(0.25) hue-rotate(15deg)",
