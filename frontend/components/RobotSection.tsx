@@ -7,13 +7,12 @@ const ROBOT_SCENE_URL =
 
 /**
  * Fixed 3D interactive robot in the bottom-right corner.
- * Uses Spline runtime directly to avoid React wrapper issues.
+ * Uses Spline Viewer web component for reliable embedding
+ * without WebGL context conflicts.
  * Theme-aware filter tinting for dark/light mode.
  */
 export default function RobotSection() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const appRef = useRef<any>(null);
   const [isDark, setIsDark] = useState(true);
   const [loaded, setLoaded] = useState(false);
 
@@ -30,36 +29,42 @@ export default function RobotSection() {
     return () => obs.disconnect();
   }, []);
 
-  // Load Spline scene via runtime
+  // Load spline-viewer web component and detect when scene loads
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    // Load the Spline viewer script
+    const script = document.createElement("script");
+    script.type = "module";
+    script.src = "https://unpkg.com/@splinetool/viewer@1.9.82/build/spline-viewer.js";
+    document.head.appendChild(script);
 
-    let cancelled = false;
+    // Watch for the spline-viewer to finish loading
+    const container = containerRef.current;
+    if (!container) return;
 
-    (async () => {
-      try {
-        const { Application } = await import("@splinetool/runtime");
-        if (cancelled) return;
-
-        const app = new Application(canvas);
-        appRef.current = app;
-        await app.load(ROBOT_SCENE_URL);
-
-        if (!cancelled) {
-          setLoaded(true);
-        }
-      } catch (err) {
-        console.warn("Spline load error:", err);
+    const checkLoaded = () => {
+      const viewer = container.querySelector("spline-viewer");
+      if (viewer?.shadowRoot?.querySelector("canvas")) {
+        setLoaded(true);
+        return true;
       }
-    })();
+      return false;
+    };
+
+    // Poll briefly for the canvas to appear inside shadow DOM
+    const interval = setInterval(() => {
+      if (checkLoaded()) clearInterval(interval);
+    }, 500);
+
+    // Give up after 15s and show anyway
+    const timeout = setTimeout(() => {
+      clearInterval(interval);
+      setLoaded(true);
+    }, 15000);
 
     return () => {
-      cancelled = true;
-      if (appRef.current) {
-        try { appRef.current.dispose(); } catch {}
-        appRef.current = null;
-      }
+      clearInterval(interval);
+      clearTimeout(timeout);
+      script.remove();
     };
   }, []);
 
@@ -81,14 +86,13 @@ export default function RobotSection() {
         transition: "opacity 1.2s ease",
       }}
     >
-      <canvas
-        ref={canvasRef}
-        width={500}
-        height={550}
+      {/* @ts-expect-error - spline-viewer is a web component */}
+      <spline-viewer
+        url={ROBOT_SCENE_URL}
         style={{
           width: "100%",
           height: "100%",
-          pointerEvents: "auto",
+          display: "block",
           filter: isDark
             ? "saturate(0.8) brightness(0.75) hue-rotate(-10deg)"
             : "saturate(0.9) brightness(0.65) sepia(0.2) hue-rotate(10deg)",
