@@ -33,51 +33,29 @@ export default function RobotSection() {
   // Load Spline scene via runtime
   useEffect(() => {
     const canvas = canvasRef.current;
-    const container = containerRef.current;
-    if (!canvas || !container) return;
+    if (!canvas) return;
 
     let cancelled = false;
 
-    // Wait a frame so the container has layout dimensions
-    requestAnimationFrame(() => {
-      if (cancelled) return;
-      const rect = container.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
-      const w = Math.round(rect.width * dpr);
-      const h = Math.round(rect.height * dpr);
-      if (w === 0 || h === 0) return;
-      canvas.width = w;
-      canvas.height = h;
+    (async () => {
+      try {
+        const { Application } = await import("@splinetool/runtime");
+        if (cancelled) return;
 
-      (async () => {
-        try {
-          const { Application } = await import("@splinetool/runtime");
-          if (cancelled) return;
+        const app = new Application(canvas);
+        appRef.current = app;
+        await app.load(ROBOT_SCENE_URL);
 
-          const app = new Application(canvas);
-          appRef.current = app;
-          await app.load(ROBOT_SCENE_URL);
-
-          if (!cancelled) {
-            setLoaded(true);
-          }
-        } catch (err) {
-          console.warn("Spline load error:", err);
+        if (!cancelled) {
+          setLoaded(true);
         }
-      })();
-    });
-
-    const onResize = () => {
-      const r = container.getBoundingClientRect();
-      const d = window.devicePixelRatio || 1;
-      canvas.width = Math.round(r.width * d);
-      canvas.height = Math.round(r.height * d);
-    };
-    window.addEventListener("resize", onResize);
+      } catch (err) {
+        console.warn("Spline load error:", err);
+      }
+    })();
 
     return () => {
       cancelled = true;
-      window.removeEventListener("resize", onResize);
       if (appRef.current) {
         try { appRef.current.dispose(); } catch {}
         appRef.current = null;
@@ -92,8 +70,10 @@ export default function RobotSection() {
       style={{
         right: 0,
         bottom: 0,
-        width: "min(45vw, 500px)",
-        height: "min(55vh, 550px)",
+        width: 500,
+        height: 550,
+        maxWidth: "45vw",
+        maxHeight: "55vh",
         // Fade edges into background
         mask: "radial-gradient(ellipse 90% 85% at 70% 60%, black 40%, transparent 80%)",
         WebkitMask: "radial-gradient(ellipse 90% 85% at 70% 60%, black 40%, transparent 80%)",
@@ -103,6 +83,8 @@ export default function RobotSection() {
     >
       <canvas
         ref={canvasRef}
+        width={500}
+        height={550}
         style={{
           width: "100%",
           height: "100%",
