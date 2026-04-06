@@ -100,3 +100,25 @@ class ErrorResponse(BaseModel):
 
     error: str
     detail: list[str] | None = None
+
+
+# ---------------------------------------------------------------------------
+# Mindshare / AI Stock Market schemas
+# ---------------------------------------------------------------------------
+
+class MindshareEntity(BaseModel):
+    """A single entity (company, model, or person) with mindshare data."""
+
+    name: str
+    type: str  # "company" | "model" | "person"
+    this_week: int
+    last_week: int
+    change_pct: float
+    trend: str  # "up" | "down" | "neutral"
+
+
+class MindshareResponse(BaseModel):
+    """Response for GET /mindshare."""
+
+    entities: list[MindshareEntity]
+    generated_at: datetime

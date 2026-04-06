@@ -99,3 +99,23 @@ export async function fetchTrending(): Promise<TrendingResponse> {
   const response = await api.get<TrendingResponse>("/trending");
   return response.data;
 }
+
+export interface MindshareEntity {
+  name: string;
+  type: "company" | "model" | "person";
+  this_week: number;
+  last_week: number;
+  change_pct: number;
+  trend: "up" | "down" | "neutral";
+}
+
+export interface MindshareResponse {
+  entities: MindshareEntity[];
+  generated_at: string;
+}
+
+/** Fetch AI mindshare leaderboard. */
+export async function fetchMindshare(): Promise<MindshareResponse> {
+  const response = await api.get<MindshareResponse>("/mindshare");
+  return response.data;
+}

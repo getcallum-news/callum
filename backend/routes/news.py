@@ -21,7 +21,7 @@ from sqlalchemy import func
 
 from database import get_db
 from models import Article, FetchCycle
-from schemas import ArticleResponse, ArticleListResponse, HealthResponse, StatsResponse, TrendingResponse, TrendingTopic
+from schemas import ArticleResponse, ArticleListResponse, HealthResponse, StatsResponse, TrendingResponse, TrendingTopic, MindshareEntity, MindshareResponse
 
 router = APIRouter()
 limiter = Limiter(key_func=get_remote_address)
@@ -190,6 +190,115 @@ def get_trending(
     topics.sort(key=lambda t: t.count, reverse=True)
 
     return TrendingResponse(topics=topics[:10], window_hours=hours)
+
+
+@router.get("/mindshare", response_model=MindshareResponse)
+@limiter.limit("30/minute")
+def get_mindshare(
+    request: Request,
+    db: Session = Depends(get_db),
+) -> MindshareResponse:
+    """Return AI mindshare leaderboard — companies, models, and people.
+
+    Counts article mentions in the last 7 days vs the 7 days prior.
+    Returns % change so the frontend can render a stock-market style board.
+    """
+
+    ENTITIES: list[tuple[str, str, list[str]]] = [
+        # Companies
+        ("OpenAI",        "company", ["openai", "chatgpt", "gpt"]),
+        ("Anthropic",     "company", ["anthropic", "claude"]),
+        ("Google",        "company", ["google ai", "deepmind", "gemini", "google deepmind"]),
+        ("Meta AI",       "company", ["meta ai", "llama", "meta's ai"]),
+        ("Microsoft",     "company", ["microsoft", "copilot", "azure ai"]),
+        ("xAI",           "company", ["xai", "grok"]),
+        ("Nvidia",        "company", ["nvidia", "h100", "blackwell"]),
+        ("Mistral",       "company", ["mistral"]),
+        ("Hugging Face",  "company", ["hugging face", "huggingface"]),
+        ("Apple",         "company", ["apple intelligence", "apple ai"]),
+        # Models
+        ("GPT-4 / GPT-5", "model",   ["gpt-4", "gpt-5", "gpt4", "gpt5", "o1", "o3", "o4"]),
+        ("Claude",        "model",   ["claude 3", "claude 4", "claude opus", "claude sonnet", "claude haiku"]),
+        ("Gemini",        "model",   ["gemini ultra", "gemini pro", "gemini flash", "gemini 2"]),
+        ("Llama",         "model",   ["llama 3", "llama 4", "llama3", "llama4"]),
+        ("Grok",          "model",   ["grok-1", "grok-2", "grok-3", "grok 3"]),
+        ("Sora",          "model",   ["sora"]),
+        ("Stable Diffusion", "model", ["stable diffusion", "sdxl", "sd3"]),
+        ("Midjourney",    "model",   ["midjourney"]),
+        # People
+        ("Sam Altman",    "person",  ["sam altman"]),
+        ("Elon Musk",     "person",  ["elon musk"]),
+        ("Demis Hassabis","person",  ["demis hassabis"]),
+        ("Yann LeCun",    "person",  ["yann lecun"]),
+        ("Geoffrey Hinton","person", ["geoffrey hinton", "hinton"]),
+        ("Ilya Sutskever","person",  ["ilya sutskever"]),
+        ("Dario Amodei",  "person",  ["dario amodei"]),
+        ("Jensen Huang",  "person",  ["jensen huang"]),
+    ]
+
+    now = datetime.now(timezone.utc)
+    this_week_start = now - timedelta(days=7)
+    last_week_start = now - timedelta(days=14)
+
+    def count_mentions(articles: list) -> Counter:
+        counts: Counter = Counter()
+        for title, summary in articles:
+            text = f"{title or ''} {summary or ''}".lower()
+            for name, _, aliases in ENTITIES:
+                if any(alias in text for alias in aliases):
+                    counts[name] += 1
+        return counts
+
+    this_week_articles = (
+        db.query(Article.title, Article.summary)
+        .filter(Article.is_active.is_(True), Article.fetched_at >= this_week_start)
+        .all()
+    )
+    last_week_articles = (
+        db.query(Article.title, Article.summary)
+        .filter(
+            Article.is_active.is_(True),
+            Article.fetched_at >= last_week_start,
+            Article.fetched_at < this_week_start,
+        )
+        .all()
+    )
+
+    this_counts = count_mentions(this_week_articles)
+    last_counts = count_mentions(last_week_articles)
+
+    entities = []
+    for name, entity_type, _ in ENTITIES:
+        this_w = this_counts[name]
+        last_w = last_counts[name]
+
+        if last_w > 0:
+            change_pct = round((this_w - last_w) / last_w * 100, 1)
+        elif this_w > 0:
+            change_pct = 100.0
+        else:
+            change_pct = 0.0
+
+        if change_pct > 2:
+            trend = "up"
+        elif change_pct < -2:
+            trend = "down"
+        else:
+            trend = "neutral"
+
+        entities.append(MindshareEntity(
+            name=name,
+            type=entity_type,
+            this_week=this_w,
+            last_week=last_w,
+            change_pct=change_pct,
+            trend=trend,
+        ))
+
+    # Sort by this week mentions descending, entities with 0 go last
+    entities.sort(key=lambda e: (-e.this_week, e.name))
+
+    return MindshareResponse(entities=entities, generated_at=now)
 
 
 @router.get("/health", response_model=HealthResponse)

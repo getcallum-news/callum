@@ -58,6 +58,7 @@ export default function Header() {
     { href: "/", label: "Home" },
     { href: "/trending", label: "Trending" },
     { href: "/rewind", label: "Rewind" },
+    { href: "/pulse", label: "Pulse" },
     { href: "/about", label: "About" },
   ];
 
