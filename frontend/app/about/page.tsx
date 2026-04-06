@@ -144,6 +144,48 @@ export default function AboutPage() {
           <div className="h-px w-full bg-[var(--border)]" />
         </div>
 
+        {/* Contact */}
+        <section className="mx-auto max-w-4xl px-6 py-20">
+          <h2 className="mb-12 text-[11px] font-medium uppercase tracking-[0.3em] text-callum-muted">
+            Get in touch
+          </h2>
+          <div className="grid gap-16 sm:grid-cols-2">
+            <div>
+              <p className="text-[15px] leading-[1.9] text-callum-muted">
+                Have a question, feedback, or a story tip? We&apos;d love to hear
+                from you. Whether it&apos;s a bug report, a partnership inquiry, or
+                just a thought on how we can improve — reach out.
+              </p>
+            </div>
+            <div className="flex flex-col gap-6">
+              <div>
+                <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.3em] text-callum-muted">
+                  Email
+                </p>
+                <a
+                  href="mailto:contact@callumnews.com"
+                  className="hover-underline text-[15px] transition-opacity hover:opacity-80"
+                >
+                  contact@callumnews.com
+                </a>
+              </div>
+              <div>
+                <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.3em] text-callum-muted">
+                  Response time
+                </p>
+                <p className="text-[15px] text-callum-muted">
+                  We typically respond within 24 hours.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Divider */}
+        <div className="mx-auto max-w-4xl px-6">
+          <div className="h-px w-full bg-[var(--border)]" />
+        </div>
+
         {/* Closing */}
         <section className="mx-auto max-w-4xl px-6 py-20 text-center">
           <p className="font-serif text-2xl font-semibold italic leading-relaxed tracking-tight sm:text-3xl">

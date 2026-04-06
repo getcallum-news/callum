@@ -20,6 +20,12 @@ export default function Footer() {
           {/* Links */}
           <div className="flex items-center gap-6">
             <a
+              href="mailto:contact@callumnews.com"
+              className="hover-underline text-[11px] uppercase tracking-[0.1em] text-callum-muted transition-opacity hover:opacity-80"
+            >
+              Contact
+            </a>
+            <a
               href="/privacy"
               className="hover-underline text-[11px] uppercase tracking-[0.1em] text-callum-muted transition-opacity hover:opacity-80"
             >
