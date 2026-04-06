@@ -8,7 +8,7 @@ import IntroSplash from "@/components/IntroSplash";
 import NewsTicker from "@/components/NewsTicker";
 import HeroSubtitle from "@/components/HeroSubtitle";
 import LiveCounter from "@/components/LiveCounter";
-import SourceMap from "@/components/SourceMap";
+
 import ParallaxHero from "@/components/ParallaxHero";
 import GSAPScrollReveal from "@/components/GSAPScrollReveal";
 import MagneticButton from "@/components/MagneticButton";
@@ -91,16 +91,6 @@ export default function Home() {
         {/* Live counter — scanned vs kept */}
         <GSAPScrollReveal>
           <LiveCounter />
-        </GSAPScrollReveal>
-
-        {/* Gradient divider */}
-        <div className="mx-auto max-w-4xl px-6">
-          <div className="gradient-divider w-full" />
-        </div>
-
-        {/* Source map */}
-        <GSAPScrollReveal delay={0.1}>
-          <SourceMap />
         </GSAPScrollReveal>
 
         {/* Gradient divider */}
