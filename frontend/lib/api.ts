@@ -102,6 +102,7 @@ export async function fetchTrending(): Promise<TrendingResponse> {
 
 export interface MindshareEntity {
   name: string;
+  slug: string;
   type: "company" | "model" | "person";
   this_week: number;
   last_week: number;
@@ -127,6 +128,7 @@ export interface MindshareHistoryPoint {
 
 export interface MindshareHistoryEntity {
   name: string;
+  slug: string;
   type: "company" | "model" | "person";
   series: MindshareHistoryPoint[];
 }
@@ -145,4 +147,70 @@ export async function fetchMindshareHistory(
     params: { days },
   });
   return response.data;
+}
+
+export interface Article {
+  id: string;
+  title: string;
+  summary: string | null;
+  url: string;
+  source: string | null;
+  published_at: string | null;
+  relevance_score: number;
+  category: string | null;
+  image_url: string | null;
+}
+
+export interface RelatedEntity {
+  name: string;
+  slug: string;
+  type: "company" | "model" | "person";
+  co_occurrences: number;
+}
+
+export interface EntityEvent {
+  date: string;
+  article_title: string;
+  article_url: string;
+  article_source: string | null;
+  mentions: number;
+}
+
+export interface EntityDetailResponse {
+  name: string;
+  slug: string;
+  type: "company" | "model" | "person";
+  this_week: number;
+  last_week: number;
+  change_pct: number;
+  trend: "up" | "down" | "neutral";
+  rank: number;
+  peak: number;
+  avg_per_day: number;
+  total_mentions: number;
+  window_days: number;
+  series: MindshareHistoryPoint[];
+  recent_articles: Article[];
+  related: RelatedEntity[];
+  events: EntityEvent[];
+  generated_at: string;
+}
+
+/** Fetch the full detail payload for a single entity. */
+export async function fetchEntityDetail(
+  slug: string,
+  days = 30
+): Promise<EntityDetailResponse> {
+  const response = await api.get<EntityDetailResponse>(`/entity/${slug}`, {
+    params: { days },
+  });
+  return response.data;
+}
+
+/** URL-safe slug for an entity name — mirror of the backend slugify(). */
+export function slugifyEntity(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }

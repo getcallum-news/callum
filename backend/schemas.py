@@ -110,6 +110,7 @@ class MindshareEntity(BaseModel):
     """A single entity (company, model, or person) with mindshare data."""
 
     name: str
+    slug: str
     type: str  # "company" | "model" | "person"
     this_week: int
     last_week: int
@@ -135,6 +136,7 @@ class MindshareHistoryEntity(BaseModel):
     """Daily mention history for a single entity."""
 
     name: str
+    slug: str
     type: str
     series: list[MindshareHistoryPoint]
 
@@ -144,4 +146,60 @@ class MindshareHistoryResponse(BaseModel):
 
     entities: list[MindshareHistoryEntity]
     days: int
+    generated_at: datetime
+
+
+# ---------------------------------------------------------------------------
+# Entity detail page
+# ---------------------------------------------------------------------------
+
+class RelatedEntity(BaseModel):
+    """An entity that frequently co-occurs with the target in articles."""
+
+    name: str
+    slug: str
+    type: str
+    co_occurrences: int
+
+
+class EntityEvent(BaseModel):
+    """A notable day in an entity's history, anchored to one article."""
+
+    date: str  # YYYY-MM-DD
+    article_title: str
+    article_url: str
+    article_source: str | None = None
+    mentions: int
+
+
+class EntityDetailResponse(BaseModel):
+    """Response for GET /entity/{slug} — full dossier for a single entity."""
+
+    name: str
+    slug: str
+    type: str  # "company" | "model" | "person"
+
+    # Current stats
+    this_week: int
+    last_week: int
+    change_pct: float
+    trend: str  # "up" | "down" | "neutral"
+    rank: int  # rank within its type, by this_week mentions
+    peak: int
+    avg_per_day: float
+    total_mentions: int  # total over the window
+    window_days: int
+
+    # History series (oldest -> newest)
+    series: list[MindshareHistoryPoint]
+
+    # Most recent articles mentioning this entity
+    recent_articles: list[ArticleResponse]
+
+    # Entities that tend to co-occur in the same articles
+    related: list[RelatedEntity]
+
+    # Top N notable days, each anchored to a representative article
+    events: list[EntityEvent]
+
     generated_at: datetime

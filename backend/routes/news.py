@@ -33,7 +33,21 @@ from schemas import (
     MindshareHistoryPoint,
     MindshareHistoryEntity,
     MindshareHistoryResponse,
+    EntityDetailResponse,
+    RelatedEntity,
+    EntityEvent,
 )
+
+
+def slugify(name: str) -> str:
+    """Turn an entity name into a URL-safe slug.
+
+    Examples: "OpenAI" -> "openai", "GPT-4 / GPT-5" -> "gpt-4-gpt-5",
+    "Hugging Face" -> "hugging-face".
+    """
+    s = name.lower()
+    s = re.sub(r"[^a-z0-9]+", "-", s)
+    return s.strip("-")
 
 # Shared entity list used by /mindshare and /mindshare/history.
 MINDSHARE_ENTITIES: list[tuple[str, str, list[str]]] = [
@@ -303,6 +317,7 @@ def get_mindshare(
 
         entities.append(MindshareEntity(
             name=name,
+            slug=slugify(name),
             type=entity_type,
             this_week=this_w,
             last_week=last_w,
@@ -370,6 +385,7 @@ def get_mindshare_history(
     entities = [
         MindshareHistoryEntity(
             name=name,
+            slug=slugify(name),
             type=entity_type,
             series=[
                 MindshareHistoryPoint(date=d, count=grid[name][d]) for d in day_keys
@@ -379,6 +395,207 @@ def get_mindshare_history(
     ]
 
     return MindshareHistoryResponse(entities=entities, days=days, generated_at=now)
+
+
+@router.get("/entity/{slug}", response_model=EntityDetailResponse)
+@limiter.limit("60/minute")
+def get_entity_detail(
+    request: Request,
+    slug: str,
+    days: int = Query(default=30, ge=7, le=90),
+    db: Session = Depends(get_db),
+) -> EntityDetailResponse:
+    """Return a full dossier for a single tracked entity.
+
+    Combines mindshare stats, daily history, recent articles, co-occurring
+    related entities, and an events timeline of notable days. Powers the
+    /entity/{slug} detail page.
+    """
+    # 1. Resolve slug -> entity
+    target: tuple[str, str, list[str]] | None = None
+    for name, etype, aliases in MINDSHARE_ENTITIES:
+        if slugify(name) == slug:
+            target = (name, etype, aliases)
+            break
+
+    if target is None:
+        raise HTTPException(status_code=404, detail="Entity not found")
+
+    target_name, target_type, target_aliases = target
+
+    now = datetime.now(timezone.utc)
+    today = now.date()
+    window_start = now - timedelta(days=days - 1)
+    this_week_cutoff = now - timedelta(days=7)
+    last_week_cutoff = now - timedelta(days=14)
+
+    # 2. Pull all articles in the history window once.
+    all_articles = (
+        db.query(Article)
+        .filter(
+            Article.is_active.is_(True),
+            Article.fetched_at >= window_start.replace(
+                hour=0, minute=0, second=0, microsecond=0
+            ),
+        )
+        .order_by(Article.fetched_at.desc())
+        .all()
+    )
+
+    # Precompute lowercased text + fetched_at for each article to avoid
+    # repeated string work inside the entity loop.
+    texts: list[str] = [
+        f"{a.title or ''} {a.summary or ''}".lower() for a in all_articles
+    ]
+
+    # Map entity name -> list of article indices that mention it.
+    entity_matches: dict[str, list[int]] = {}
+    for name, _, aliases in MINDSHARE_ENTITIES:
+        matches: list[int] = []
+        for i, t in enumerate(texts):
+            if any(alias in t for alias in aliases):
+                matches.append(i)
+        entity_matches[name] = matches
+
+    target_indices = entity_matches[target_name]
+    matching_articles = [all_articles[i] for i in target_indices]
+
+    # 3. Daily series for the history chart.
+    day_keys = [(today - timedelta(days=i)).isoformat() for i in reversed(range(days))]
+    day_set = set(day_keys)
+    day_counts: dict[str, int] = {d: 0 for d in day_keys}
+    for a in matching_articles:
+        if a.fetched_at is None:
+            continue
+        d = a.fetched_at.date().isoformat()
+        if d in day_set:
+            day_counts[d] += 1
+
+    series = [
+        MindshareHistoryPoint(date=d, count=day_counts[d]) for d in day_keys
+    ]
+
+    # 4. This week vs last week (for the change indicator).
+    this_week = sum(
+        1 for a in matching_articles
+        if a.fetched_at is not None and a.fetched_at >= this_week_cutoff
+    )
+    last_week = sum(
+        1 for a in matching_articles
+        if a.fetched_at is not None
+        and last_week_cutoff <= a.fetched_at < this_week_cutoff
+    )
+
+    if last_week > 0:
+        change_pct = round((this_week - last_week) / last_week * 100, 1)
+    elif this_week > 0:
+        change_pct = 100.0
+    else:
+        change_pct = 0.0
+
+    if change_pct > 2:
+        trend = "up"
+    elif change_pct < -2:
+        trend = "down"
+    else:
+        trend = "neutral"
+
+    # 5. Rank within the same type, by this_week mentions.
+    rank = 1
+    for name, etype, _ in MINDSHARE_ENTITIES:
+        if etype != target_type or name == target_name:
+            continue
+        their_this_week = sum(
+            1 for i in entity_matches[name]
+            if all_articles[i].fetched_at is not None
+            and all_articles[i].fetched_at >= this_week_cutoff
+        )
+        if their_this_week > this_week:
+            rank += 1
+
+    # 6. Window stats.
+    total_mentions = len(matching_articles)
+    peak = max(day_counts.values()) if day_counts else 0
+    avg_per_day = round(total_mentions / days, 1) if days > 0 else 0.0
+
+    # 7. Recent articles — most recent 15 that mention this entity.
+    recent_articles = matching_articles[:15]
+
+    # 8. Related entities via co-occurrence on the target's matching articles.
+    target_index_set = set(target_indices)
+    related_counts: Counter = Counter()
+    for name, etype, _ in MINDSHARE_ENTITIES:
+        if name == target_name:
+            continue
+        co = sum(1 for i in entity_matches[name] if i in target_index_set)
+        if co > 0:
+            related_counts[(name, etype)] = co
+
+    top_related = related_counts.most_common(6)
+    related = [
+        RelatedEntity(
+            name=name,
+            slug=slugify(name),
+            type=etype,
+            co_occurrences=count,
+        )
+        for (name, etype), count in top_related
+    ]
+
+    # 9. Events timeline — top 5 days by mention count, anchored to the
+    #    highest-relevance article on each day.
+    by_day: dict[str, list[Article]] = {}
+    for a in matching_articles:
+        if a.fetched_at is None:
+            continue
+        d = a.fetched_at.date().isoformat()
+        by_day.setdefault(d, []).append(a)
+
+    # Pick top 5 days by mention count; break ties by newer date.
+    top_days = sorted(
+        by_day.items(),
+        key=lambda kv: (-len(kv[1]), kv[0]),
+    )[:5]
+
+    events: list[EntityEvent] = []
+    # Present events in chronological order, newest first.
+    for day, arts in sorted(top_days, key=lambda kv: kv[0], reverse=True):
+        best = max(
+            arts,
+            key=lambda a: (
+                a.relevance_score or 0,
+                a.fetched_at or datetime.min.replace(tzinfo=timezone.utc),
+            ),
+        )
+        events.append(
+            EntityEvent(
+                date=day,
+                article_title=best.title,
+                article_url=best.url,
+                article_source=best.source,
+                mentions=len(arts),
+            )
+        )
+
+    return EntityDetailResponse(
+        name=target_name,
+        slug=slug,
+        type=target_type,
+        this_week=this_week,
+        last_week=last_week,
+        change_pct=change_pct,
+        trend=trend,
+        rank=rank,
+        peak=peak,
+        avg_per_day=avg_per_day,
+        total_mentions=total_mentions,
+        window_days=days,
+        series=series,
+        recent_articles=[ArticleResponse.model_validate(a) for a in recent_articles],
+        related=related,
+        events=events,
+        generated_at=now,
+    )
 
 
 @router.get("/health", response_model=HealthResponse)

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -62,9 +63,8 @@ function MindshareRow({
 
   return (
     <div className="border-b border-[var(--border)]">
-      <button
-        onClick={onToggle}
-        className="group relative flex w-full items-center gap-4 py-4 text-left transition-all hover:opacity-90"
+      <div
+        className="group relative flex items-center gap-4 py-4 transition-all hover:opacity-90"
         aria-expanded={expanded}
       >
         {/* Rank */}
@@ -72,18 +72,25 @@ function MindshareRow({
           {String(rank).padStart(2, "0")}
         </span>
 
-        {/* Name + bar */}
+        {/* Name + bar — clicking the name navigates to the detail page */}
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
-            <span className="flex items-center gap-2 font-serif text-[15px] font-medium tracking-tight">
-              {entity.name}
-              <span
-                className="text-[9px] opacity-30 transition-transform duration-300"
+            <div className="flex items-center gap-3">
+              <Link
+                href={`/entity/${entity.slug}`}
+                className="font-serif text-[15px] font-medium tracking-tight hover:underline"
+              >
+                {entity.name}
+              </Link>
+              <button
+                onClick={onToggle}
+                className="text-[9px] opacity-30 transition-all hover:opacity-70"
                 style={{ transform: expanded ? "rotate(90deg)" : "rotate(0deg)" }}
+                aria-label={expanded ? "Collapse preview" : "Expand preview"}
               >
                 ▸
-              </span>
-            </span>
+              </button>
+            </div>
             <ChangeTag pct={entity.change_pct} trend={entity.trend} />
           </div>
           {/* Mention bar */}
@@ -104,19 +111,30 @@ function MindshareRow({
             articles
           </p>
         </div>
-      </button>
+      </div>
 
       {/* Expanded chart */}
       <div
         className="overflow-hidden transition-all duration-500 ease-out"
         style={{
-          maxHeight: expanded ? 420 : 0,
+          maxHeight: expanded ? 460 : 0,
           opacity: expanded ? 1 : 0,
         }}
       >
         <div className="px-0 pb-8 pl-10 pr-2">
           {history && history.length > 0 ? (
-            <LineChart data={history} height={220} color={accent} />
+            <>
+              <LineChart data={history} height={220} color={accent} />
+              <div className="mt-4">
+                <Link
+                  href={`/entity/${entity.slug}`}
+                  className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.2em] text-callum-muted opacity-70 transition-opacity hover:opacity-100"
+                >
+                  Open full page
+                  <span>→</span>
+                </Link>
+              </div>
+            </>
           ) : (
             <div className="py-8 text-center text-[11px] uppercase tracking-[0.15em] text-callum-muted opacity-40">
               Loading history…
