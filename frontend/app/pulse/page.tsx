@@ -110,13 +110,13 @@ function MindshareRow({
       <div
         className="overflow-hidden transition-all duration-500 ease-out"
         style={{
-          maxHeight: expanded ? 260 : 0,
+          maxHeight: expanded ? 420 : 0,
           opacity: expanded ? 1 : 0,
         }}
       >
-        <div className="px-0 pb-6 pl-10">
+        <div className="px-0 pb-8 pl-10 pr-2">
           {history && history.length > 0 ? (
-            <LineChart data={history} height={180} color={accent} />
+            <LineChart data={history} height={220} color={accent} />
           ) : (
             <div className="py-8 text-center text-[11px] uppercase tracking-[0.15em] text-callum-muted opacity-40">
               Loading history…
@@ -256,9 +256,9 @@ export default function PulsePage() {
               </div>
             </div>
             {loading ? (
-              <div className="h-[180px] animate-pulse rounded bg-[var(--border)] opacity-30" />
+              <div className="h-[220px] animate-pulse rounded bg-[var(--border)] opacity-30" />
             ) : (
-              <LineChart data={collectiveSeries} height={180} />
+              <LineChart data={collectiveSeries} height={240} />
             )}
           </div>
 
