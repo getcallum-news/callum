@@ -122,3 +122,26 @@ class MindshareResponse(BaseModel):
 
     entities: list[MindshareEntity]
     generated_at: datetime
+
+
+class MindshareHistoryPoint(BaseModel):
+    """A single day in an entity's mention history."""
+
+    date: str  # YYYY-MM-DD
+    count: int
+
+
+class MindshareHistoryEntity(BaseModel):
+    """Daily mention history for a single entity."""
+
+    name: str
+    type: str
+    series: list[MindshareHistoryPoint]
+
+
+class MindshareHistoryResponse(BaseModel):
+    """Response for GET /mindshare/history."""
+
+    entities: list[MindshareHistoryEntity]
+    days: int
+    generated_at: datetime

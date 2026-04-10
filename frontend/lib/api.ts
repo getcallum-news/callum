@@ -119,3 +119,30 @@ export async function fetchMindshare(): Promise<MindshareResponse> {
   const response = await api.get<MindshareResponse>("/mindshare");
   return response.data;
 }
+
+export interface MindshareHistoryPoint {
+  date: string; // YYYY-MM-DD
+  count: number;
+}
+
+export interface MindshareHistoryEntity {
+  name: string;
+  type: "company" | "model" | "person";
+  series: MindshareHistoryPoint[];
+}
+
+export interface MindshareHistoryResponse {
+  entities: MindshareHistoryEntity[];
+  days: number;
+  generated_at: string;
+}
+
+/** Fetch daily mindshare history for each tracked entity. */
+export async function fetchMindshareHistory(
+  days = 14
+): Promise<MindshareHistoryResponse> {
+  const response = await api.get<MindshareHistoryResponse>("/mindshare/history", {
+    params: { days },
+  });
+  return response.data;
+}

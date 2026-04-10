@@ -21,7 +21,52 @@ from sqlalchemy import func
 
 from database import get_db
 from models import Article, FetchCycle
-from schemas import ArticleResponse, ArticleListResponse, HealthResponse, StatsResponse, TrendingResponse, TrendingTopic, MindshareEntity, MindshareResponse
+from schemas import (
+    ArticleResponse,
+    ArticleListResponse,
+    HealthResponse,
+    StatsResponse,
+    TrendingResponse,
+    TrendingTopic,
+    MindshareEntity,
+    MindshareResponse,
+    MindshareHistoryPoint,
+    MindshareHistoryEntity,
+    MindshareHistoryResponse,
+)
+
+# Shared entity list used by /mindshare and /mindshare/history.
+MINDSHARE_ENTITIES: list[tuple[str, str, list[str]]] = [
+    # Companies
+    ("OpenAI",        "company", ["openai", "chatgpt", "gpt"]),
+    ("Anthropic",     "company", ["anthropic", "claude"]),
+    ("Google",        "company", ["google ai", "deepmind", "gemini", "google deepmind"]),
+    ("Meta AI",       "company", ["meta ai", "llama", "meta's ai"]),
+    ("Microsoft",     "company", ["microsoft", "copilot", "azure ai"]),
+    ("xAI",           "company", ["xai", "grok"]),
+    ("Nvidia",        "company", ["nvidia", "h100", "blackwell"]),
+    ("Mistral",       "company", ["mistral"]),
+    ("Hugging Face",  "company", ["hugging face", "huggingface"]),
+    ("Apple",         "company", ["apple intelligence", "apple ai"]),
+    # Models
+    ("GPT-4 / GPT-5", "model",   ["gpt-4", "gpt-5", "gpt4", "gpt5", "o1", "o3", "o4"]),
+    ("Claude",        "model",   ["claude 3", "claude 4", "claude opus", "claude sonnet", "claude haiku"]),
+    ("Gemini",        "model",   ["gemini ultra", "gemini pro", "gemini flash", "gemini 2"]),
+    ("Llama",         "model",   ["llama 3", "llama 4", "llama3", "llama4"]),
+    ("Grok",          "model",   ["grok-1", "grok-2", "grok-3", "grok 3"]),
+    ("Sora",          "model",   ["sora"]),
+    ("Stable Diffusion", "model", ["stable diffusion", "sdxl", "sd3"]),
+    ("Midjourney",    "model",   ["midjourney"]),
+    # People
+    ("Sam Altman",    "person",  ["sam altman"]),
+    ("Elon Musk",     "person",  ["elon musk"]),
+    ("Demis Hassabis","person",  ["demis hassabis"]),
+    ("Yann LeCun",    "person",  ["yann lecun"]),
+    ("Geoffrey Hinton","person", ["geoffrey hinton", "hinton"]),
+    ("Ilya Sutskever","person",  ["ilya sutskever"]),
+    ("Dario Amodei",  "person",  ["dario amodei"]),
+    ("Jensen Huang",  "person",  ["jensen huang"]),
+]
 
 router = APIRouter()
 limiter = Limiter(key_func=get_remote_address)
@@ -204,37 +249,7 @@ def get_mindshare(
     Returns % change so the frontend can render a stock-market style board.
     """
 
-    ENTITIES: list[tuple[str, str, list[str]]] = [
-        # Companies
-        ("OpenAI",        "company", ["openai", "chatgpt", "gpt"]),
-        ("Anthropic",     "company", ["anthropic", "claude"]),
-        ("Google",        "company", ["google ai", "deepmind", "gemini", "google deepmind"]),
-        ("Meta AI",       "company", ["meta ai", "llama", "meta's ai"]),
-        ("Microsoft",     "company", ["microsoft", "copilot", "azure ai"]),
-        ("xAI",           "company", ["xai", "grok"]),
-        ("Nvidia",        "company", ["nvidia", "h100", "blackwell"]),
-        ("Mistral",       "company", ["mistral"]),
-        ("Hugging Face",  "company", ["hugging face", "huggingface"]),
-        ("Apple",         "company", ["apple intelligence", "apple ai"]),
-        # Models
-        ("GPT-4 / GPT-5", "model",   ["gpt-4", "gpt-5", "gpt4", "gpt5", "o1", "o3", "o4"]),
-        ("Claude",        "model",   ["claude 3", "claude 4", "claude opus", "claude sonnet", "claude haiku"]),
-        ("Gemini",        "model",   ["gemini ultra", "gemini pro", "gemini flash", "gemini 2"]),
-        ("Llama",         "model",   ["llama 3", "llama 4", "llama3", "llama4"]),
-        ("Grok",          "model",   ["grok-1", "grok-2", "grok-3", "grok 3"]),
-        ("Sora",          "model",   ["sora"]),
-        ("Stable Diffusion", "model", ["stable diffusion", "sdxl", "sd3"]),
-        ("Midjourney",    "model",   ["midjourney"]),
-        # People
-        ("Sam Altman",    "person",  ["sam altman"]),
-        ("Elon Musk",     "person",  ["elon musk"]),
-        ("Demis Hassabis","person",  ["demis hassabis"]),
-        ("Yann LeCun",    "person",  ["yann lecun"]),
-        ("Geoffrey Hinton","person", ["geoffrey hinton", "hinton"]),
-        ("Ilya Sutskever","person",  ["ilya sutskever"]),
-        ("Dario Amodei",  "person",  ["dario amodei"]),
-        ("Jensen Huang",  "person",  ["jensen huang"]),
-    ]
+    ENTITIES = MINDSHARE_ENTITIES
 
     now = datetime.now(timezone.utc)
     this_week_start = now - timedelta(days=7)
@@ -299,6 +314,71 @@ def get_mindshare(
     entities.sort(key=lambda e: (-e.this_week, e.name))
 
     return MindshareResponse(entities=entities, generated_at=now)
+
+
+@router.get("/mindshare/history", response_model=MindshareHistoryResponse)
+@limiter.limit("30/minute")
+def get_mindshare_history(
+    request: Request,
+    days: int = Query(default=14, ge=2, le=60),
+    db: Session = Depends(get_db),
+) -> MindshareHistoryResponse:
+    """Return daily mention counts for each tracked entity over the last N days.
+
+    Used by the Pulse line-chart view. For each day in the window, counts
+    how many articles (fetched on that day) mention each entity. Returns
+    a series of (date, count) points per entity.
+    """
+
+    now = datetime.now(timezone.utc)
+    today = now.date()
+    window_start = now - timedelta(days=days - 1)
+
+    # Day keys: oldest -> newest, ending today.
+    day_keys: list[str] = [
+        (today - timedelta(days=i)).isoformat() for i in reversed(range(days))
+    ]
+    day_set = set(day_keys)
+
+    # Pull article metadata for the whole window in one go.
+    rows = (
+        db.query(Article.title, Article.summary, Article.fetched_at)
+        .filter(
+            Article.is_active.is_(True),
+            Article.fetched_at >= window_start.replace(hour=0, minute=0, second=0, microsecond=0),
+        )
+        .all()
+    )
+
+    # Empty [name][date] -> 0 grid so every day is present in the series,
+    # even when no article mentioned the entity that day.
+    grid: dict[str, dict[str, int]] = {
+        name: {d: 0 for d in day_keys} for name, _, _ in MINDSHARE_ENTITIES
+    }
+
+    for title, summary, fetched_at in rows:
+        if fetched_at is None:
+            continue
+        day = fetched_at.date().isoformat()
+        if day not in day_set:
+            continue
+        text = f"{title or ''} {summary or ''}".lower()
+        for name, _, aliases in MINDSHARE_ENTITIES:
+            if any(alias in text for alias in aliases):
+                grid[name][day] += 1
+
+    entities = [
+        MindshareHistoryEntity(
+            name=name,
+            type=entity_type,
+            series=[
+                MindshareHistoryPoint(date=d, count=grid[name][d]) for d in day_keys
+            ],
+        )
+        for name, entity_type, _ in MINDSHARE_ENTITIES
+    ]
+
+    return MindshareHistoryResponse(entities=entities, days=days, generated_at=now)
 
 
 @router.get("/health", response_model=HealthResponse)

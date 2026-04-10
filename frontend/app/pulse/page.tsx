@@ -1,12 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CookieBanner from "@/components/CookieBanner";
 import ScrollProgress from "@/components/ScrollProgress";
 import CustomCursor from "@/components/CustomCursor";
-import { fetchMindshare, MindshareEntity } from "@/lib/api";
+import LineChart, { LinePoint } from "@/components/LineChart";
+import {
+  fetchMindshare,
+  fetchMindshareHistory,
+  MindshareEntity,
+  MindshareHistoryEntity,
+} from "@/lib/api";
 
 const TYPE_LABELS: Record<string, string> = {
   company: "Companies",
@@ -35,45 +41,88 @@ function MindshareRow({
   entity,
   rank,
   max,
+  expanded,
+  onToggle,
+  history,
 }: {
   entity: MindshareEntity;
   rank: number;
   max: number;
+  expanded: boolean;
+  onToggle: () => void;
+  history: LinePoint[] | null;
 }) {
   const barWidth = max > 0 ? (entity.this_week / max) * 100 : 0;
+  const accent =
+    entity.trend === "up"
+      ? "#34d399"
+      : entity.trend === "down"
+      ? "#fb7185"
+      : undefined;
 
   return (
-    <div className="group relative flex items-center gap-4 border-b border-[var(--border)] px-0 py-4 transition-all">
-      {/* Rank */}
-      <span className="w-6 shrink-0 text-[11px] tabular-nums text-callum-muted opacity-40">
-        {String(rank).padStart(2, "0")}
-      </span>
-
-      {/* Name + bar */}
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center justify-between gap-2">
-          <span className="font-serif text-[15px] font-medium tracking-tight">
-            {entity.name}
-          </span>
-          <ChangeTag pct={entity.change_pct} trend={entity.trend} />
-        </div>
-        {/* Mention bar */}
-        <div className="mt-2 h-[2px] w-full overflow-hidden rounded-full bg-[var(--border)]">
-          <div
-            className="h-full rounded-full bg-current opacity-20 transition-all duration-700 group-hover:opacity-40"
-            style={{ width: `${barWidth}%` }}
-          />
-        </div>
-      </div>
-
-      {/* Article count */}
-      <div className="shrink-0 text-right">
-        <span className="font-mono text-[13px] tabular-nums">
-          {entity.this_week}
+    <div className="border-b border-[var(--border)]">
+      <button
+        onClick={onToggle}
+        className="group relative flex w-full items-center gap-4 py-4 text-left transition-all hover:opacity-90"
+        aria-expanded={expanded}
+      >
+        {/* Rank */}
+        <span className="w-6 shrink-0 text-[11px] tabular-nums text-callum-muted opacity-40">
+          {String(rank).padStart(2, "0")}
         </span>
-        <p className="text-[10px] uppercase tracking-[0.1em] text-callum-muted opacity-50">
-          articles
-        </p>
+
+        {/* Name + bar */}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-2">
+            <span className="flex items-center gap-2 font-serif text-[15px] font-medium tracking-tight">
+              {entity.name}
+              <span
+                className="text-[9px] opacity-30 transition-transform duration-300"
+                style={{ transform: expanded ? "rotate(90deg)" : "rotate(0deg)" }}
+              >
+                ▸
+              </span>
+            </span>
+            <ChangeTag pct={entity.change_pct} trend={entity.trend} />
+          </div>
+          {/* Mention bar */}
+          <div className="mt-2 h-[2px] w-full overflow-hidden rounded-full bg-[var(--border)]">
+            <div
+              className="h-full rounded-full bg-current opacity-20 transition-all duration-700 group-hover:opacity-40"
+              style={{ width: `${barWidth}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Article count */}
+        <div className="shrink-0 text-right">
+          <span className="font-mono text-[13px] tabular-nums">
+            {entity.this_week}
+          </span>
+          <p className="text-[10px] uppercase tracking-[0.1em] text-callum-muted opacity-50">
+            articles
+          </p>
+        </div>
+      </button>
+
+      {/* Expanded chart */}
+      <div
+        className="overflow-hidden transition-all duration-500 ease-out"
+        style={{
+          maxHeight: expanded ? 260 : 0,
+          opacity: expanded ? 1 : 0,
+        }}
+      >
+        <div className="px-0 pb-6 pl-10">
+          {history && history.length > 0 ? (
+            <LineChart data={history} height={180} color={accent} />
+          ) : (
+            <div className="py-8 text-center text-[11px] uppercase tracking-[0.15em] text-callum-muted opacity-40">
+              Loading history…
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -81,15 +130,18 @@ function MindshareRow({
 
 export default function PulsePage() {
   const [data, setData] = useState<MindshareEntity[]>([]);
+  const [history, setHistory] = useState<MindshareHistoryEntity[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"company" | "model" | "person">("company");
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchMindshare()
-      .then((res) => {
-        setData(res.entities);
-        setLastUpdated(res.generated_at);
+    Promise.all([fetchMindshare(), fetchMindshareHistory(14)])
+      .then(([mindshare, hist]) => {
+        setData(mindshare.entities);
+        setLastUpdated(mindshare.generated_at);
+        setHistory(hist.entities);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -97,6 +149,31 @@ export default function PulsePage() {
 
   const filtered = data.filter((e) => e.type === activeTab);
   const max = filtered.reduce((m, e) => Math.max(m, e.this_week), 0);
+
+  const historyByName = useMemo(() => {
+    const map: Record<string, LinePoint[]> = {};
+    for (const h of history) {
+      map[h.name] = h.series;
+    }
+    return map;
+  }, [history]);
+
+  // Collective series — sum of all tracked entities in the active tab by day.
+  const collectiveSeries = useMemo<LinePoint[]>(() => {
+    const relevant = history.filter((h) => h.type === activeTab);
+    if (relevant.length === 0) return [];
+    const byDate: Record<string, number> = {};
+    for (const h of relevant) {
+      for (const p of h.series) {
+        byDate[p.date] = (byDate[p.date] ?? 0) + p.count;
+      }
+    }
+    return Object.entries(byDate)
+      .sort(([a], [b]) => (a < b ? -1 : 1))
+      .map(([date, count]) => ({ date, count }));
+  }, [history, activeTab]);
+
+  const collectiveTotal = collectiveSeries.reduce((s, p) => s + p.count, 0);
 
   const tabs: Array<"company" | "model" | "person"> = ["company", "model", "person"];
 
@@ -147,7 +224,10 @@ export default function PulsePage() {
             {tabs.map((tab) => (
               <button
                 key={tab}
-                onClick={() => setActiveTab(tab)}
+                onClick={() => {
+                  setActiveTab(tab);
+                  setExpanded(null);
+                }}
                 className={`px-5 pb-3 pt-1 text-[11px] font-medium uppercase tracking-[0.2em] transition-all ${
                   activeTab === tab
                     ? "border-b-2 border-current opacity-100"
@@ -158,6 +238,28 @@ export default function PulsePage() {
                 {TYPE_LABELS[tab]}
               </button>
             ))}
+          </div>
+
+          {/* Collective chart */}
+          <div className="mb-12 rounded-sm border border-[var(--border)] p-6">
+            <div className="mb-4 flex items-baseline justify-between">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-callum-muted opacity-50">
+                  Collective mindshare · {TYPE_LABELS[activeTab]}
+                </p>
+                <p className="mt-1 font-serif text-[20px] font-medium tracking-tight">
+                  {collectiveTotal.toLocaleString()}{" "}
+                  <span className="text-[12px] font-normal text-callum-muted opacity-60">
+                    mentions · last 14 days
+                  </span>
+                </p>
+              </div>
+            </div>
+            {loading ? (
+              <div className="h-[180px] animate-pulse rounded bg-[var(--border)] opacity-30" />
+            ) : (
+              <LineChart data={collectiveSeries} height={180} />
+            )}
           </div>
 
           {/* Column headers */}
@@ -209,6 +311,11 @@ export default function PulsePage() {
                   entity={entity}
                   rank={i + 1}
                   max={max}
+                  expanded={expanded === entity.name}
+                  onToggle={() =>
+                    setExpanded(expanded === entity.name ? null : entity.name)
+                  }
+                  history={historyByName[entity.name] ?? null}
                 />
               ))}
             </div>
@@ -228,6 +335,12 @@ export default function PulsePage() {
                 </span>
               </div>
             ))}
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[13px] opacity-50">▸</span>
+              <span className="text-[11px] uppercase tracking-[0.15em] text-callum-muted opacity-60">
+                Click a row to see history
+              </span>
+            </div>
           </div>
         </section>
       </main>
