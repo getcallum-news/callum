@@ -18,6 +18,8 @@ interface Article {
   relevance_score: number;
   category: string | null;
   image_url: string | null;
+  sentiment: string | null;
+  sentiment_score: number | null;
 }
 
 
@@ -57,6 +59,29 @@ const CATEGORY_TAG_CLASS: Record<string, string> = {
   industry: "category-tag category-tag-industry",
   tools: "category-tag category-tag-tools",
   safety: "category-tag category-tag-safety",
+};
+
+const SENTIMENT_CONFIG: Record<string, { label: string; icon: string; className: string }> = {
+  positive: {
+    label: "Positive",
+    icon: "↑",
+    className: "text-emerald-400/90",
+  },
+  negative: {
+    label: "Negative",
+    icon: "↓",
+    className: "text-rose-400/90",
+  },
+  neutral: {
+    label: "Neutral",
+    icon: "—",
+    className: "text-callum-muted",
+  },
+  mixed: {
+    label: "Mixed",
+    icon: "↕",
+    className: "text-amber-400/90",
+  },
 };
 
 const CATEGORY_GRADIENT: Record<string, string> = {
@@ -100,6 +125,18 @@ export default function NewsCard({ article, index }: NewsCardProps) {
                 <span className="text-callum-muted opacity-30">/</span>
                 <span className={CATEGORY_TAG_CLASS[article.category] || "category-tag"}>
                   {CATEGORY_LABELS[article.category]}
+                </span>
+              </>
+            )}
+            {article.sentiment && SENTIMENT_CONFIG[article.sentiment] && (
+              <>
+                <span className="text-callum-muted opacity-30">/</span>
+                <span
+                  className={`inline-flex items-center gap-1 text-[11px] font-medium tracking-wide ${SENTIMENT_CONFIG[article.sentiment].className}`}
+                  title={`Sentiment: ${SENTIMENT_CONFIG[article.sentiment].label}${article.sentiment_score != null ? ` (${article.sentiment_score > 0 ? "+" : ""}${article.sentiment_score.toFixed(2)})` : ""}`}
+                >
+                  <span className="text-[13px] leading-none">{SENTIMENT_CONFIG[article.sentiment].icon}</span>
+                  <span className="uppercase tracking-[0.1em]">{SENTIMENT_CONFIG[article.sentiment].label}</span>
                 </span>
               </>
             )}

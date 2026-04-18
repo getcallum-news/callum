@@ -22,6 +22,7 @@ from sqlalchemy.exc import IntegrityError
 
 from models import Article, FetchCycle
 from services.filter import passes_filter, detect_category
+from services.sentiment import analyze_sentiment
 
 import re
 
@@ -401,6 +402,9 @@ def save_articles(db: Session, raw_articles: list[dict[str, Any]]) -> dict[str, 
         # Assign category based on content and source
         category = detect_category(title, summary, raw.get("source"))
 
+        # Sentiment analysis on title + summary
+        sent = analyze_sentiment(title, summary)
+
         article = Article(
             id=uuid.uuid4(),
             title=title[:500],
@@ -411,6 +415,8 @@ def save_articles(db: Session, raw_articles: list[dict[str, Any]]) -> dict[str, 
             relevance_score=score,
             category=category,
             image_url=raw.get("image_url"),
+            sentiment=sent["sentiment"],
+            sentiment_score=sent["sentiment_score"],
             is_active=True,
         )
 

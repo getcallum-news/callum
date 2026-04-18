@@ -29,5 +29,8 @@ pywebpush==2.0.1
 # Error monitoring
 sentry-sdk[fastapi]==2.19.2
 
+# Sentiment analysis
+nltk==3.9.1
+
 # Pydantic (bundled with FastAPI, pinned for clarity)
 pydantic==2.10.4

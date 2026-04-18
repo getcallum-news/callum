@@ -9,7 +9,7 @@ Two tables:
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, String, Integer, Boolean, DateTime
+from sqlalchemy import Column, String, Integer, Float, Boolean, DateTime
 from sqlalchemy.dialects.postgresql import UUID
 
 from database import Base
@@ -39,6 +39,8 @@ class Article(Base):
     relevance_score = Column(Integer, default=0)
     category = Column(String(50), nullable=True)
     image_url = Column(String(2000), nullable=True)
+    sentiment = Column(String(20), nullable=True)       # positive | negative | neutral | mixed
+    sentiment_score = Column(Float, nullable=True)       # -1.0 (very negative) to 1.0 (very positive)
     is_active = Column(Boolean, default=True, nullable=False)
 
     def __repr__(self) -> str:

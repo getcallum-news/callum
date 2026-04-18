@@ -30,6 +30,8 @@ interface ArticlesResponse {
     relevance_score: number;
     category: string | null;
     image_url: string | null;
+    sentiment: string | null;
+    sentiment_score: number | null;
   }>;
   total: number;
   page: number;
@@ -159,6 +161,8 @@ export interface Article {
   relevance_score: number;
   category: string | null;
   image_url: string | null;
+  sentiment: string | null;
+  sentiment_score: number | null;
 }
 
 export interface RelatedEntity {

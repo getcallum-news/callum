@@ -27,6 +27,8 @@ class ArticleResponse(BaseModel):
     relevance_score: int = 0
     category: str | None = None
     image_url: str | None = None
+    sentiment: str | None = None          # positive | negative | neutral | mixed
+    sentiment_score: float | None = None  # -1.0 to 1.0
 
     model_config = ConfigDict(from_attributes=True)
 

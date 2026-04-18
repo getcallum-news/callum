@@ -25,6 +25,13 @@ const CATEGORY_TAG_CLASS: Record<string, string> = {
   safety: "category-tag category-tag-safety",
 };
 
+const SENTIMENT_CONFIG: Record<string, { label: string; icon: string; className: string }> = {
+  positive: { label: "Positive", icon: "↑", className: "text-emerald-400/90" },
+  negative: { label: "Negative", icon: "↓", className: "text-rose-400/90" },
+  neutral: { label: "Neutral", icon: "—", className: "text-callum-muted" },
+  mixed: { label: "Mixed", icon: "↕", className: "text-amber-400/90" },
+};
+
 const CATEGORY_GRADIENT: Record<string, string> = {
   research: "linear-gradient(135deg, rgba(140,100,240,0.3) 0%, rgba(100,60,200,0.15) 50%, rgba(80,160,220,0.2) 100%)",
   industry: "linear-gradient(135deg, rgba(80,140,255,0.3) 0%, rgba(60,100,200,0.15) 50%, rgba(100,180,255,0.2) 100%)",
@@ -78,9 +85,15 @@ function FeaturedCard({ article }: { article: Article }) {
                 )}
               </div>
               <div className="mt-6 flex items-center justify-between text-[11px] text-callum-muted">
-                <span>
+                <span className="flex items-center gap-2">
                   {article.source && <span className="font-semibold uppercase tracking-[0.15em]">{article.source}</span>}
-                  {article.published_at && <span className="ml-2 opacity-60">{timeAgo(article.published_at)}</span>}
+                  {article.published_at && <span className="opacity-60">{timeAgo(article.published_at)}</span>}
+                  {article.sentiment && SENTIMENT_CONFIG[article.sentiment] && (
+                    <span className={`inline-flex items-center gap-1 font-medium ${SENTIMENT_CONFIG[article.sentiment].className}`}>
+                      <span className="text-[13px] leading-none">{SENTIMENT_CONFIG[article.sentiment].icon}</span>
+                      <span className="uppercase tracking-[0.1em]">{SENTIMENT_CONFIG[article.sentiment].label}</span>
+                    </span>
+                  )}
                 </span>
                 <span className="inline-flex items-center gap-1 opacity-40 transition-opacity group-hover:opacity-100 text-[12px] font-medium uppercase tracking-[0.1em]">
                   Read
@@ -131,9 +144,15 @@ function SmallCard({ article, index }: { article: Article; index: number }) {
                 )}
               </div>
               <div className="mt-4 flex items-center justify-between text-[11px] text-callum-muted">
-                <span>
+                <span className="flex items-center gap-2">
                   {article.source && <span className="font-semibold uppercase tracking-[0.1em]">{article.source}</span>}
-                  {article.published_at && <span className="ml-2 opacity-60">{timeAgo(article.published_at)}</span>}
+                  {article.published_at && <span className="opacity-60">{timeAgo(article.published_at)}</span>}
+                  {article.sentiment && SENTIMENT_CONFIG[article.sentiment] && (
+                    <span className={`inline-flex items-center gap-1 font-medium ${SENTIMENT_CONFIG[article.sentiment].className}`}>
+                      <span className="text-[12px] leading-none">{SENTIMENT_CONFIG[article.sentiment].icon}</span>
+                      <span className="uppercase tracking-[0.1em]">{SENTIMENT_CONFIG[article.sentiment].label}</span>
+                    </span>
+                  )}
                 </span>
                 <span className="opacity-0 transition-opacity group-hover:opacity-60 text-[11px]">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
