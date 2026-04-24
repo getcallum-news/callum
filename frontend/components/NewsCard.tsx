@@ -20,6 +20,8 @@ interface Article {
   image_url: string | null;
   sentiment: string | null;
   sentiment_score: number | null;
+  topic_id: number | null;
+  topic_keywords: string[] | null;
 }
 
 
@@ -159,6 +161,22 @@ export default function NewsCard({ article, index }: NewsCardProps) {
             <p className="mt-4 line-clamp-3 text-[15px] leading-[1.8] text-callum-muted">
               {article.summary}
             </p>
+          )}
+
+          {/* Topic keywords */}
+          {article.topic_keywords && article.topic_keywords.length > 0 && (
+            <div className="mt-4 flex flex-wrap gap-1.5">
+              {article.topic_keywords.slice(0, 4).map((kw) => (
+                <a
+                  key={kw}
+                  href={`/topics/${article.topic_id}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="inline-block rounded-full border border-[var(--border)] px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.1em] text-callum-muted transition-colors hover:border-current/40 hover:text-[var(--text-primary)]"
+                >
+                  {kw}
+                </a>
+              ))}
+            </div>
           )}
 
           {/* Read more */}

@@ -20,7 +20,7 @@ from slowapi.util import get_remote_address
 from sqlalchemy import func
 
 from database import get_db
-from models import Article, FetchCycle
+from models import Article, FetchCycle, Topic
 from schemas import (
     ArticleResponse,
     ArticleListResponse,
@@ -36,6 +36,9 @@ from schemas import (
     EntityDetailResponse,
     RelatedEntity,
     EntityEvent,
+    TopicResponse,
+    TopicListResponse,
+    TopicDetailResponse,
 )
 
 
@@ -94,14 +97,15 @@ def list_articles(
     limit: int = Query(default=20, ge=1, le=50, description="Articles per page"),
     category: str | None = Query(default=None, description="Filter by category"),
     source: str | None = Query(default=None, description="Filter by source"),
+    topic_id: int | None = Query(default=None, description="Filter by BERTopic cluster ID"),
     q: str | None = Query(default=None, max_length=200, description="Full-text search across title and summary"),
     db: Session = Depends(get_db),
 ) -> ArticleListResponse:
     """Return a paginated list of articles, newest first.
 
     Supports optional filtering by category (research, industry, tools,
-    safety) and source (TechCrunch, arXiv, Hacker News, etc.).
-    Supports full-text search via the q param (ILIKE on title + summary).
+    safety), source (TechCrunch, arXiv, Hacker News, etc.), topic_id
+    (BERTopic cluster), and full-text search via the q param.
     """
     query = db.query(Article).filter(Article.is_active.is_(True))
 
@@ -109,6 +113,8 @@ def list_articles(
         query = query.filter(Article.category == category)
     if source:
         query = query.filter(Article.source == source)
+    if topic_id is not None:
+        query = query.filter(Article.topic_id == topic_id)
     if q:
         term = f"%{q}%"
         query = query.filter(
@@ -595,6 +601,103 @@ def get_entity_detail(
         related=related,
         events=events,
         generated_at=now,
+    )
+
+
+@router.get("/topics", response_model=TopicListResponse)
+@limiter.limit("30/minute")
+def list_topics(
+    request: Request,
+    db: Session = Depends(get_db),
+) -> TopicListResponse:
+    """Return all BERTopic clusters ordered by article count.
+
+    Each topic includes up to 3 sample articles for preview cards on the
+    /topics discovery page.  Returns an empty list if clustering has not
+    run yet.
+    """
+    topics = (
+        db.query(Topic)
+        .order_by(Topic.article_count.desc())
+        .all()
+    )
+
+    topic_responses = []
+    for t in topics:
+        sample = (
+            db.query(Article)
+            .filter(Article.topic_id == t.id, Article.is_active.is_(True))
+            .order_by(Article.published_at.desc().nullslast())
+            .limit(3)
+            .all()
+        )
+        topic_responses.append(TopicResponse(
+            id=t.id,
+            label=t.label,
+            top_terms=t.top_terms or [],
+            article_count=t.article_count,
+            updated_at=t.updated_at,
+            sample_articles=[ArticleResponse.model_validate(a) for a in sample],
+        ))
+
+    total_articles = db.query(Article).filter(Article.is_active.is_(True)).count()
+    total_clustered = (
+        db.query(Article)
+        .filter(Article.is_active.is_(True), Article.topic_id.isnot(None))
+        .count()
+    )
+
+    return TopicListResponse(
+        topics=topic_responses,
+        total_clustered=total_clustered,
+        total_articles=total_articles,
+        generated_at=datetime.now(timezone.utc),
+    )
+
+
+@router.get("/topics/{topic_id}", response_model=TopicDetailResponse)
+@limiter.limit("30/minute")
+def get_topic(
+    request: Request,
+    topic_id: int,
+    page: int = Query(default=1, ge=1),
+    limit: int = Query(default=20, ge=1, le=50),
+    db: Session = Depends(get_db),
+) -> TopicDetailResponse:
+    """Return a single topic cluster with paginated articles.
+
+    Powers the /topics/{id} detail page.
+    """
+    topic = db.query(Topic).filter(Topic.id == topic_id).first()
+    if not topic:
+        raise HTTPException(status_code=404, detail="Topic not found")
+
+    article_query = (
+        db.query(Article)
+        .filter(Article.topic_id == topic_id, Article.is_active.is_(True))
+    )
+    total = article_query.count()
+    articles = (
+        article_query
+        .order_by(Article.published_at.desc().nullslast())
+        .offset((page - 1) * limit)
+        .limit(limit)
+        .all()
+    )
+
+    return TopicDetailResponse(
+        id=topic.id,
+        label=topic.label,
+        top_terms=topic.top_terms or [],
+        article_count=topic.article_count,
+        updated_at=topic.updated_at,
+        articles=ArticleListResponse(
+            articles=[ArticleResponse.model_validate(a) for a in articles],
+            total=total,
+            page=page,
+            pages=max(1, math.ceil(total / limit)),
+        ),
+        generated_at=datetime.now(timezone.utc),
     )
 
 

@@ -29,6 +29,8 @@ class ArticleResponse(BaseModel):
     image_url: str | None = None
     sentiment: str | None = None          # positive | negative | neutral | mixed
     sentiment_score: float | None = None  # -1.0 to 1.0
+    topic_id: int | None = None
+    topic_keywords: list[str] | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -204,4 +206,42 @@ class EntityDetailResponse(BaseModel):
     # Top N notable days, each anchored to a representative article
     events: list[EntityEvent]
 
+    generated_at: datetime
+
+
+# ---------------------------------------------------------------------------
+# Topic clustering schemas
+# ---------------------------------------------------------------------------
+
+class TopicResponse(BaseModel):
+    """A single BERTopic cluster with representative articles."""
+
+    id: int
+    label: str                          # e.g. "GPT · Model · OpenAI · Release"
+    top_terms: list[str]                # top 10 keywords
+    article_count: int
+    updated_at: datetime | None = None
+    sample_articles: list[ArticleResponse] = []
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class TopicListResponse(BaseModel):
+    """Response for GET /topics."""
+
+    topics: list[TopicResponse]
+    total_clustered: int                # articles with a topic assignment
+    total_articles: int                 # all active articles
+    generated_at: datetime
+
+
+class TopicDetailResponse(BaseModel):
+    """Response for GET /topics/{id}."""
+
+    id: int
+    label: str
+    top_terms: list[str]
+    article_count: int
+    updated_at: datetime | None = None
+    articles: ArticleListResponse
     generated_at: datetime

@@ -20,6 +20,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from database import SessionLocal
 from services.fetcher import fetch_all_sources, fetch_og_images, save_articles
 from services.notifier import send_notifications
+from services.topic_modeling import topic_modeler
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +72,30 @@ def _run_fetch_cycle() -> None:
         loop.close()
 
 
+def _run_topic_clustering() -> None:
+    """Run BERTopic clustering on all articles and persist topic assignments.
+
+    Runs daily at 03:00 UTC — after the overnight fetch cycles have
+    collected fresh articles.  Heavy deps are lazy-loaded inside the
+    topic_modeler so startup is unaffected.
+    """
+    logger.info("Topic clustering started")
+    db = SessionLocal()
+    try:
+        stats = topic_modeler.run_clustering(db)
+        if stats.get("skipped"):
+            logger.warning("Topic clustering skipped: %s", stats.get("reason"))
+        else:
+            logger.info(
+                "Topic clustering done — %d topics, %d/%d articles assigned",
+                stats["n_topics"], stats["n_assigned"], stats["n_total"],
+            )
+    except Exception as e:
+        logger.error("Topic clustering failed: %s", e, exc_info=True)
+    finally:
+        db.close()
+
+
 def start_scheduler() -> BackgroundScheduler:
     """Start the background scheduler.
 
@@ -86,9 +111,21 @@ def start_scheduler() -> BackgroundScheduler:
         name="Fetch AI news from all sources",
         replace_existing=True,
     )
+    # Daily BERTopic re-clustering at 03:00 UTC
+    scheduler.add_job(
+        _run_topic_clustering,
+        trigger="cron",
+        hour=3,
+        minute=0,
+        id="topic_clustering",
+        name="BERTopic clustering of all articles",
+        replace_existing=True,
+    )
+
     scheduler.start()
     logger.info(
-        "Scheduler started — fetching every %d minutes", FETCH_INTERVAL_MINUTES
+        "Scheduler started — fetching every %d minutes, topic clustering daily at 03:00 UTC",
+        FETCH_INTERVAL_MINUTES,
     )
 
     # Run once immediately in a separate thread so we don't conflict

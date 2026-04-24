@@ -9,7 +9,7 @@ Two tables:
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, String, Integer, Float, Boolean, DateTime
+from sqlalchemy import Column, String, Integer, Float, Boolean, DateTime, JSON, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 
 from database import Base
@@ -41,6 +41,8 @@ class Article(Base):
     image_url = Column(String(2000), nullable=True)
     sentiment = Column(String(20), nullable=True)       # positive | negative | neutral | mixed
     sentiment_score = Column(Float, nullable=True)       # -1.0 (very negative) to 1.0 (very positive)
+    topic_id = Column(Integer, ForeignKey("topics.id", ondelete="SET NULL"), nullable=True, index=True)
+    topic_keywords = Column(JSON, nullable=True)         # top 5 keywords for the article's topic
     is_active = Column(Boolean, default=True, nullable=False)
 
     def __repr__(self) -> str:
@@ -89,3 +91,27 @@ class FetchCycle(Base):
 
     def __repr__(self) -> str:
         return f"<FetchCycle scanned={self.total_scanned} passed={self.total_passed} saved={self.total_saved}>"
+
+
+class Topic(Base):
+    """A topic cluster discovered by BERTopic.
+
+    Each topic is an integer ID assigned by BERTopic (0, 1, 2, …).
+    Topic -1 (outliers) is never stored — articles that don't fit any
+    cluster have topic_id = NULL on the Article row.
+
+    Topics are wiped and re-inserted on each daily re-clustering run.
+    Articles point to topics via topic_id FK with ON DELETE SET NULL so
+    that a re-cluster safely clears assignments before the new ones land.
+    """
+
+    __tablename__ = "topics"
+
+    id = Column(Integer, primary_key=True)          # BERTopic's integer topic ID
+    label = Column(String(200), nullable=False)     # e.g. "GPT · Model · OpenAI · Release"
+    top_terms = Column(JSON, nullable=False)        # ["gpt", "model", "openai", "release", …]
+    article_count = Column(Integer, default=0, nullable=False)
+    updated_at = Column(DateTime(timezone=True), nullable=True)
+
+    def __repr__(self) -> str:
+        return f"<Topic {self.id}: {self.label}>"

@@ -32,6 +32,8 @@ interface ArticlesResponse {
     image_url: string | null;
     sentiment: string | null;
     sentiment_score: number | null;
+    topic_id: number | null;
+    topic_keywords: string[] | null;
   }>;
   total: number;
   page: number;
@@ -44,6 +46,7 @@ interface FetchArticlesParams {
   limit?: number;
   category?: string;
   source?: string;
+  topic_id?: number;
   q?: string;
 }
 
@@ -163,6 +166,8 @@ export interface Article {
   image_url: string | null;
   sentiment: string | null;
   sentiment_score: number | null;
+  topic_id: number | null;
+  topic_keywords: string[] | null;
 }
 
 export interface RelatedEntity {
@@ -217,4 +222,57 @@ export function slugifyEntity(name: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+}
+
+// ---------------------------------------------------------------------------
+// Topic clustering
+// ---------------------------------------------------------------------------
+
+export interface TopicSummary {
+  id: number;
+  label: string;
+  top_terms: string[];
+  article_count: number;
+  updated_at: string | null;
+  sample_articles: Article[];
+}
+
+export interface TopicListResponse {
+  topics: TopicSummary[];
+  total_clustered: number;
+  total_articles: number;
+  generated_at: string;
+}
+
+export interface TopicDetailResponse {
+  id: number;
+  label: string;
+  top_terms: string[];
+  article_count: number;
+  updated_at: string | null;
+  articles: {
+    articles: Article[];
+    total: number;
+    page: number;
+    pages: number;
+  };
+  generated_at: string;
+}
+
+/** Fetch all topic clusters for the /topics discovery page. */
+export async function fetchTopics(): Promise<TopicListResponse> {
+  const response = await api.get<TopicListResponse>("/topics");
+  return response.data;
+}
+
+/** Fetch a single topic with its paginated articles. */
+export async function fetchTopic(
+  id: number,
+  page = 1,
+  limit = 20
+): Promise<TopicDetailResponse> {
+  const response = await api.get<TopicDetailResponse>(`/topics/${id}`, {
+    params: { page, limit },
+  });
+  return response.data;
 }

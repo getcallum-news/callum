@@ -34,3 +34,13 @@ nltk==3.9.1
 
 # Pydantic (bundled with FastAPI, pinned for clarity)
 pydantic==2.10.4
+
+# Topic modeling — BERTopic pipeline
+# sentence-transformers: embeds articles into 384-dim semantic vectors
+# bertopic: UMAP + HDBSCAN + c-TF-IDF topic discovery
+# umap-learn / hdbscan: dimensionality reduction + density clustering
+sentence-transformers>=2.7.0
+bertopic>=0.16.0
+umap-learn>=0.5.4
+hdbscan>=0.8.33
+scikit-learn>=1.3.0
