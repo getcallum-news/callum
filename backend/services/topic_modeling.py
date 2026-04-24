@@ -85,6 +85,7 @@ class TopicModeler:
             from sentence_transformers import SentenceTransformer
             from umap import UMAP
             from hdbscan import HDBSCAN
+            from sklearn.feature_extraction.text import CountVectorizer
         except ImportError as exc:
             logger.error("Topic modeling deps not installed: %s", exc)
             return {"skipped": True, "reason": str(exc)}
@@ -101,19 +102,32 @@ class TopicModeler:
             random_state=42,
         )
 
-        # HDBSCAN: density-based — doesn't need k upfront
+        # HDBSCAN: density-based — doesn't need k upfront.
+        # min_cluster_size=10 keeps clusters tight (avoid one catch-all topic
+        # swallowing half the corpus, which happened with size=5).
         hdbscan_model = HDBSCAN(
-            min_cluster_size=5,
+            min_cluster_size=10,
+            min_samples=3,
             metric="euclidean",
             cluster_selection_method="eom",
             prediction_data=True,
+        )
+
+        # c-TF-IDF vectorizer — filters English stopwords so labels don't
+        # come out as "And · The · Of · To", and drops hapax-legomena with
+        # min_df=2. Bigrams surface multi-word terms like "large language".
+        vectorizer_model = CountVectorizer(
+            stop_words="english",
+            min_df=2,
+            ngram_range=(1, 2),
         )
 
         topic_model = BERTopic(
             embedding_model=embedding_model,
             umap_model=umap_model,
             hdbscan_model=hdbscan_model,
-            nr_topics=MAX_TOPICS,   # merge until at most MAX_TOPICS remain
+            vectorizer_model=vectorizer_model,
+            nr_topics="auto",        # let BERTopic decide — no forced merge
             top_n_words=10,
             verbose=False,
         )
