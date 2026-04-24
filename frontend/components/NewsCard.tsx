@@ -171,7 +171,7 @@ export default function NewsCard({ article, index }: NewsCardProps) {
                   key={kw}
                   href={`/topics/${article.topic_id}`}
                   onClick={(e) => e.stopPropagation()}
-                  className="inline-block rounded-full border border-[var(--border)] px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.1em] text-callum-muted transition-colors hover:border-current/40 hover:text-[var(--text-primary)]"
+                  className="inline-block rounded-full border border-current/20 px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.1em] text-callum-muted transition-colors hover:border-current/40 hover:text-[var(--text-primary)]"
                 >
                   {kw}
                 </a>

@@ -95,14 +95,14 @@ export default async function TopicsPage() {
               <Link
                 key={topic.id}
                 href={`/topics/${topic.id}`}
-                className="group flex flex-col gap-4 rounded-[14px] border border-[var(--border)] bg-[var(--bg)]/60 p-6 backdrop-blur-sm transition-all duration-300 hover:border-current/30 hover:bg-[var(--bg)]/80"
+                className="card-enhanced group flex flex-col gap-4 rounded-[14px] p-6 transition-all duration-300"
               >
                 {/* Topic label + count */}
                 <div className="flex items-start justify-between gap-3">
                   <h2 className="font-serif text-lg font-medium leading-tight tracking-tight">
                     {topic.label}
                   </h2>
-                  <span className="shrink-0 rounded-full border border-[var(--border)] px-2.5 py-0.5 text-[11px] tracking-wide text-callum-muted">
+                  <span className="shrink-0 rounded-full border border-current/20 px-2.5 py-0.5 text-[11px] tracking-wide text-callum-muted">
                     {topic.article_count}
                   </span>
                 </div>
@@ -112,7 +112,7 @@ export default async function TopicsPage() {
                   {topic.top_terms.slice(0, 6).map((term) => (
                     <span
                       key={term}
-                      className="inline-block rounded-full border border-[var(--border)] px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.1em] text-callum-muted"
+                      className="inline-block rounded-full border border-current/20 px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.1em] text-callum-muted"
                     >
                       {term}
                     </span>
@@ -121,7 +121,7 @@ export default async function TopicsPage() {
 
                 {/* Sample article titles */}
                 {topic.sample_articles.length > 0 && (
-                  <ul className="flex flex-col gap-2 border-t border-[var(--border)] pt-4">
+                  <ul className="flex flex-col gap-2 border-t border-current/10 pt-4">
                     {topic.sample_articles.map((a) => (
                       <li key={a.id} className="flex items-start gap-2">
                         <span className="mt-[6px] h-1 w-1 shrink-0 rounded-full bg-callum-muted opacity-50" />

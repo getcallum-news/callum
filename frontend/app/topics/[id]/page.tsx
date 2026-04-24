@@ -81,7 +81,7 @@ export default async function TopicDetailPage({ params, searchParams }: PageProp
             {data.top_terms.map((term) => (
               <span
                 key={term}
-                className="inline-block rounded-full border border-[var(--border)] px-3 py-1 text-[11px] font-medium uppercase tracking-[0.1em] text-callum-muted"
+                className="inline-block rounded-full border border-current/20 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.1em] text-callum-muted"
               >
                 {term}
               </span>
